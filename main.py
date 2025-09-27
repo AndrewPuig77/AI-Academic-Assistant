@@ -1,6 +1,7 @@
 """
-AI Research Paper Assistant - Main Streamlit Application
-A powerful tool for analyzing research papers using Google's Gemini AI
+Academic AI Assistant - Main Streamlit Application
+A powerful tool for analyzing research papers and class materials using Google's Gemini AI
+Supporting both research analysis and student study tools
 """
 
 import streamlit as st
@@ -22,8 +23,8 @@ from app.utils.report_generator import AdvancedReportGenerator
 
 # Page configuration
 st.set_page_config(
-    page_title="AI Research Paper Assistant",
-    page_icon="📚",
+    page_title="Academic AI Assistant",
+    page_icon="🎓",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -306,9 +307,9 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 def main():
-    # Main header
-    st.markdown('<h1 class="main-header">📚 AI Research Paper Assistant</h1>', unsafe_allow_html=True)
-    st.markdown("### Powered by Google Gemini AI - Analyze research papers like never before!")
+    # Main title with modern styling
+    st.markdown('<h1 class="main-title">🎓 Academic AI Assistant</h1>', unsafe_allow_html=True)
+    st.markdown('<p class="subtitle">Powered by Google Gemini AI • Research Analysis & Study Tools for Academic Success</p>', unsafe_allow_html=True)
     
     # Sidebar for configuration
     with st.sidebar:
@@ -906,7 +907,7 @@ def main():
                         st.error(f"❌ Export error: {str(e)}")
     
     with tab5:
-        st.header("About AI Research Paper & Study Assistant")
+        st.header("About Academic AI Assistant")
         
         st.markdown("""
         ### 🎯 Purpose
