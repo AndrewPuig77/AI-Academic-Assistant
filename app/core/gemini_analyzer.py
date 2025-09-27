@@ -120,6 +120,58 @@ class GeminiAnalyzer:
         
         logger.info(f"Gemini analyzer initialized with model: {actual_model}")
     
+    def _make_api_call_with_retry(self, prompt: str, max_retries: int = 5, operation_name: str = "API call") -> str:
+        """
+        Make API call with intelligent retry logic for quota errors.
+        
+        Args:
+            prompt: The prompt to send to the model
+            max_retries: Maximum number of retries (default 5)
+            operation_name: Name of the operation for logging
+            
+        Returns:
+            Generated text response
+        """
+        for attempt in range(max_retries + 1):
+            try:
+                response = self.model.generate_content(prompt, generation_config=self.generation_config)
+                if response and response.text:
+                    if attempt > 0:
+                        logger.info(f"✅ {operation_name} succeeded on attempt {attempt + 1}")
+                    return response.text
+                else:
+                    return f"⚠️ No response generated for {operation_name}"
+                    
+            except Exception as e:
+                error_msg = str(e)
+                
+                # Check for quota/rate limit errors (429 status)
+                if ("429" in error_msg or "quota" in error_msg.lower() or 
+                    "rate limit" in error_msg.lower() or "exceeded" in error_msg.lower()):
+                    
+                    if attempt < max_retries:
+                        # Progressive backoff: 2, 5, 10, 20, 40 seconds
+                        wait_time = min(2 ** (attempt + 1), 40)
+                        logger.warning(f"🔄 {operation_name} - Quota exceeded, attempt {attempt + 1}/{max_retries + 1}. Retrying in {wait_time}s...")
+                        time.sleep(wait_time)
+                        continue
+                    else:
+                        logger.error(f"❌ {operation_name} failed after {max_retries + 1} attempts")
+                        return f"⚠️ **API Quota Exceeded**\n\nThe Gemini API free tier has reached its daily limit (50 requests). This is normal for free accounts.\n\n**Solutions:**\n• Wait 24 hours for quota reset\n• Upgrade to paid API plan for higher limits\n• Try using fewer analysis options at once\n\n**Note:** Your document was processed successfully, but AI analysis is temporarily limited."
+                
+                # Other errors (not quota related)
+                else:
+                    if attempt < max_retries:
+                        wait_time = 2 * (attempt + 1)  # Simple backoff for other errors
+                        logger.warning(f"🔄 {operation_name} error (attempt {attempt + 1}/{max_retries + 1}): {error_msg}. Retrying in {wait_time}s...")
+                        time.sleep(wait_time)
+                        continue
+                    else:
+                        logger.error(f"❌ {operation_name} failed: {error_msg}")
+                        return f"❌ **Error in {operation_name}**\n\n{error_msg}\n\nPlease try again or contact support if the issue persists."
+        
+        return f"❌ Failed to complete {operation_name} after {max_retries + 1} attempts"
+    
     def analyze_paper(self, paper_text: str, analysis_options: Dict[str, bool]) -> Dict[str, str]:
         """
         Comprehensive analysis of academic content.
@@ -322,12 +374,7 @@ class GeminiAnalyzer:
             {paper_text[:4000]}
             """
         
-        try:
-            response = self.model.generate_content(prompt, generation_config=self.generation_config)
-            return response.text
-        except Exception as e:
-            logger.error(f"Error generating summary: {str(e)}")
-            return f"Error generating summary: {str(e)}"
+        return self._make_api_call_with_retry(prompt, max_retries=5, operation_name="summary generation")
     
     def analyze_methodology(self, paper_text: str) -> str:
         """Analyze the research methodology in detail."""
@@ -352,13 +399,7 @@ class GeminiAnalyzer:
         {paper_text[:4000]}
         """
         
-        try:
-            response = self.model.generate_content(prompt, generation_config=self.generation_config)
-            return response.text
-        except Exception as e:
-            logger.error(f"Error analyzing methodology: {str(e)}")
-            return f"Error analyzing methodology: {str(e)}"
-            return f"Error extracting citations: {str(e)}"
+        return self._make_api_call_with_retry(prompt, max_retries=5, operation_name="methodology analysis")
     
     def identify_research_gaps(self, paper_text: str) -> str:
         """Identify research gaps and future directions."""
@@ -1011,11 +1052,8 @@ class GeminiAnalyzer:
 
         CONTENT: {content[:4000]}
         """
-        try:
-            response = self.model.generate_content(prompt, generation_config=self.generation_config)
-            return response.text
-        except Exception as e:
-            return f"Error extracting key concepts: {str(e)}"
+        
+        return self._make_api_call_with_retry(prompt, max_retries=5, operation_name="key concepts extraction")
 
     def extract_examples_cases(self, content: str, document_type: str) -> str:
         """Extract examples and case studies."""
@@ -1055,11 +1093,8 @@ class GeminiAnalyzer:
 
         CONTENT: {content[:4000]}
         """
-        try:
-            response = self.model.generate_content(prompt, generation_config=self.generation_config)
-            return response.text
-        except Exception as e:
-            return f"Error generating study questions: {str(e)}"
+        
+        return self._make_api_call_with_retry(prompt, max_retries=5, operation_name="study questions generation")
 
     def assess_difficulty(self, content: str, document_type: str) -> str:
         """Assess the difficulty level of content."""
