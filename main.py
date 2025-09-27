@@ -534,9 +534,6 @@ def main():
         - **Report Generation**: ReportLab for PDF exports
         - **Environment**: Python 3.13, python-dotenv for configuration
         - **Optional APIs**: FastAPI, Uvicorn for REST capabilities
-        
-        ### 📞 Support
-        For questions or issues, please check the documentation or contact support.
         """)
 
 if __name__ == "__main__":
