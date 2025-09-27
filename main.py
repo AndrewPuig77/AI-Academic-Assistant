@@ -340,13 +340,13 @@ def main():
     tab1, tab2, tab3, tab4, tab5 = st.tabs(["📤 Upload & Analyze", "📊 Results", "🔬 Research Tools", "📚 Study Tools", "ℹ️ About"])
     
     with tab1:
-        st.header("Upload Your Research Paper")
+        st.header("Upload Your Academic Document")
         
         # File uploader
         uploaded_file = st.file_uploader(
-            "Choose a PDF file",
+            "Choose your PDF file",
             type=['pdf'],
-            help="Upload a research paper in PDF format (max 10MB)"
+            help="Upload a research paper, textbook chapter, lecture notes, or any academic material in PDF format (max 10MB)"
         )
         
         if uploaded_file is not None:
@@ -489,7 +489,7 @@ def main():
                     report_generator.display_streamlit_report(results, paper_name)
         
         else:
-            st.info("📤 Upload and analyze a paper first to see results here.")
+            st.info("📤 Upload and analyze an academic document first to see results here.")
     
     with tab3:
         st.header("🔬 Advanced Research Tools")
@@ -569,7 +569,7 @@ def main():
                     )
         
         else:
-            st.info("📤 Upload and analyze a paper first to access advanced research tools.")
+            st.info("📤 Upload and analyze an academic document first to access advanced research tools.")
             st.markdown("""
             ### 🛠️ Available Research Tools:
             
