@@ -342,6 +342,24 @@ def main():
     with tab1:
         st.header("Upload Your Academic Document")
         
+        # Document type selector
+        st.subheader("📁 Document Type")
+        document_type = st.selectbox(
+            "What type of document are you analyzing?",
+            [
+                "🔬 Research Paper",
+                "📚 Textbook Chapter", 
+                "📝 Lecture Notes",
+                "📋 Assignment/Homework",
+                "📄 Article/Essay",
+                "📊 Report/Thesis",
+                "🎓 Study Guide",
+                "🗒️ Class Handout",
+                "📖 Other Academic Material"
+            ],
+            help="Select the type of document to get the most relevant analysis options"
+        )
+        
         # File uploader
         uploaded_file = st.file_uploader(
             "Choose your PDF file",
@@ -353,23 +371,104 @@ def main():
             # Display file info
             st.markdown(f"**File:** {uploaded_file.name}")
             st.markdown(f"**Size:** {uploaded_file.size / 1024 / 1024:.2f} MB")
+            st.markdown(f"**Type:** {document_type}")
             
-            # Analysis options
+            # Dynamic analysis options based on document type
             st.subheader("Analysis Options")
-            col1, col2 = st.columns(2)
             
-            with col1:
-                include_summary = st.checkbox("📝 Generate Summary", value=True)
-                include_methodology = st.checkbox("🔬 Analyze Methodology", value=True)
-                include_citations = st.checkbox("📚 Extract Citations", value=True)
+            # Common options for all document types
+            include_summary = st.checkbox("📝 Generate Summary", value=True)
+            include_keywords = st.checkbox("🏷️ Extract Keywords", value=True)
+            detailed_analysis = st.checkbox("📋 Detailed Analysis", value=False)
             
-            with col2:
-                include_gaps = st.checkbox("🔍 Identify Research Gaps", value=True)
-                include_keywords = st.checkbox("🏷️ Extract Keywords", value=True)
-                detailed_analysis = st.checkbox("📋 Detailed Analysis", value=False)
+            # Document-specific options
+            if document_type == "🔬 Research Paper":
+                st.markdown("**Research Paper Specific:**")
+                col1, col2 = st.columns(2)
+                with col1:
+                    include_methodology = st.checkbox("🔬 Analyze Methodology", value=True)
+                    include_citations = st.checkbox("📚 Extract Citations", value=True)
+                with col2:
+                    include_gaps = st.checkbox("� Identify Research Gaps", value=True)
+                    include_future_work = st.checkbox("🔮 Future Research Directions", value=False)
+                
+            elif document_type in ["📚 Textbook Chapter", "📝 Lecture Notes", "🗒️ Class Handout"]:
+                st.markdown("**Study Material Specific:**")
+                col1, col2 = st.columns(2)
+                with col1:
+                    include_concepts = st.checkbox("🎯 Key Concepts", value=True)
+                    include_examples = st.checkbox("💡 Examples & Cases", value=True)
+                with col2:
+                    include_questions = st.checkbox("❓ Generate Study Questions", value=True)
+                    include_difficulty = st.checkbox("� Assess Difficulty Level", value=False)
+                    
+                # Set research-specific options to False for study materials
+                include_methodology = False
+                include_citations = False  
+                include_gaps = False
+                include_future_work = False
+                
+            elif document_type in ["📋 Assignment/Homework", "📄 Article/Essay"]:
+                st.markdown("**Assignment/Essay Specific:**")
+                col1, col2 = st.columns(2)
+                with col1:
+                    include_structure = st.checkbox("🏗️ Structure Analysis", value=True)
+                    include_arguments = st.checkbox("💭 Key Arguments", value=True)
+                with col2:
+                    include_improvements = st.checkbox("✨ Improvement Suggestions", value=False)
+                    include_sources = st.checkbox("📚 Source Analysis", value=True)
+                    
+                # Set research-specific options conditionally
+                include_methodology = False
+                include_citations = include_sources  # Map to source analysis
+                include_gaps = False
+                include_future_work = False
+                
+            elif document_type in ["📊 Report/Thesis", "🎓 Study Guide"]:
+                st.markdown("**Report/Guide Specific:**")
+                col1, col2 = st.columns(2)
+                with col1:
+                    include_structure = st.checkbox("🏗️ Structure Analysis", value=True)
+                    include_findings = st.checkbox("📈 Key Findings", value=True)
+                with col2:
+                    include_recommendations = st.checkbox("� Recommendations", value=True)
+                    include_citations = st.checkbox("📚 References", value=True)
+                    
+                # Partial research features
+                include_methodology = st.checkbox("🔬 Approach/Methods", value=False) if document_type == "📊 Report/Thesis" else False
+                include_gaps = False
+                include_future_work = False
+                
+            else:  # Other Academic Material
+                st.markdown("**General Analysis:**")
+                col1, col2 = st.columns(2)
+                with col1:
+                    include_structure = st.checkbox("�️ Structure Analysis", value=True)
+                    include_main_points = st.checkbox("🎯 Main Points", value=True)
+                with col2:
+                    include_context = st.checkbox("🌍 Context Analysis", value=False)
+                    include_citations = st.checkbox("� References", value=False)
+                    
+                # Minimal research features
+                include_methodology = False
+                include_gaps = False
+                include_future_work = False
+            
+            # Dynamic button text based on document type
+            button_text = {
+                "🔬 Research Paper": "🚀 Analyze Research Paper",
+                "📚 Textbook Chapter": "📖 Analyze Chapter", 
+                "📝 Lecture Notes": "🎓 Analyze Notes",
+                "📋 Assignment/Homework": "📝 Analyze Assignment",
+                "📄 Article/Essay": "📰 Analyze Article",
+                "📊 Report/Thesis": "📊 Analyze Report",
+                "🎓 Study Guide": "📚 Analyze Guide",
+                "🗒️ Class Handout": "📄 Analyze Handout",
+                "📖 Other Academic Material": "🔍 Analyze Document"
+            }
             
             # Analyze button
-            if st.button("🚀 Analyze Paper", type="primary", use_container_width=True):
+            if st.button(button_text.get(document_type, "🚀 Analyze Document"), type="primary", use_container_width=True):
                 try:
                     # Create progress bar
                     progress_bar = st.progress(0)
@@ -397,12 +496,26 @@ def main():
                     status_text.text("⚙️ Configuring analysis options...")
                     progress_bar.progress(50)
                     analysis_options = {
+                        'document_type': document_type,
                         'summary': include_summary,
-                        'methodology': include_methodology,
-                        'citations': include_citations,
-                        'gaps': include_gaps,
+                        'methodology': include_methodology if 'include_methodology' in locals() else False,
+                        'citations': include_citations if 'include_citations' in locals() else False,
+                        'gaps': include_gaps if 'include_gaps' in locals() else False,
                         'keywords': include_keywords,
-                        'detailed': detailed_analysis
+                        'detailed': detailed_analysis,
+                        # New options for different document types
+                        'concepts': include_concepts if 'include_concepts' in locals() else False,
+                        'examples': include_examples if 'include_examples' in locals() else False,
+                        'questions': include_questions if 'include_questions' in locals() else False,
+                        'difficulty': include_difficulty if 'include_difficulty' in locals() else False,
+                        'structure': include_structure if 'include_structure' in locals() else False,
+                        'arguments': include_arguments if 'include_arguments' in locals() else False,
+                        'improvements': include_improvements if 'include_improvements' in locals() else False,
+                        'findings': include_findings if 'include_findings' in locals() else False,
+                        'recommendations': include_recommendations if 'include_recommendations' in locals() else False,
+                        'main_points': include_main_points if 'include_main_points' in locals() else False,
+                        'context': include_context if 'include_context' in locals() else False,
+                        'future_work': include_future_work if 'include_future_work' in locals() else False
                     }
                     
                     # Step 5: AI Analysis (longest step)
@@ -437,26 +550,83 @@ def main():
         
         if 'analysis_results' in st.session_state:
             results = st.session_state['analysis_results']
-            paper_name = st.session_state.get('paper_name', 'Unknown Paper')
+            document_name = st.session_state.get('paper_name', 'Unknown Document')
+            document_type = results.get('document_type', 'Unknown Type')
             
-            st.markdown(f"### Results for: **{paper_name}**")
+            st.markdown(f"### Results for: **{document_name}**")
+            st.markdown(f"**Document Type:** {document_type}")
             
             # Display results based on what was analyzed
             if results.get('summary'):
-                with st.expander("📝 Paper Summary", expanded=True):
+                title = "📝 Summary" if "Research Paper" not in document_type else "📝 Paper Summary"
+                with st.expander(title, expanded=True):
                     st.markdown(results['summary'])
             
+            # Research-specific results
             if results.get('methodology'):
                 with st.expander("🔬 Methodology Analysis"):
                     st.markdown(results['methodology'])
             
-            if results.get('citations'):
-                with st.expander("📚 Citations & References"):
-                    st.markdown(results['citations'])
-            
             if results.get('gaps'):
                 with st.expander("🔍 Research Gaps Identified"):
                     st.markdown(results['gaps'])
+            
+            if results.get('future_work'):
+                with st.expander("🔮 Future Research Directions"):
+                    st.markdown(results['future_work'])
+            
+            # Study material specific results
+            if results.get('concepts'):
+                with st.expander("🎯 Key Concepts"):
+                    st.markdown(results['concepts'])
+            
+            if results.get('examples'):
+                with st.expander("� Examples & Cases"):
+                    st.markdown(results['examples'])
+            
+            if results.get('questions'):
+                with st.expander("❓ Study Questions"):
+                    st.markdown(results['questions'])
+            
+            if results.get('difficulty'):
+                with st.expander("📊 Difficulty Assessment"):
+                    st.markdown(results['difficulty'])
+            
+            # Assignment/Essay specific results
+            if results.get('structure'):
+                with st.expander("🏗️ Structure Analysis"):
+                    st.markdown(results['structure'])
+            
+            if results.get('arguments'):
+                with st.expander("💭 Key Arguments"):
+                    st.markdown(results['arguments'])
+            
+            if results.get('improvements'):
+                with st.expander("✨ Improvement Suggestions"):
+                    st.markdown(results['improvements'])
+            
+            # Report/Guide specific results
+            if results.get('findings'):
+                with st.expander("� Key Findings"):
+                    st.markdown(results['findings'])
+            
+            if results.get('recommendations'):
+                with st.expander("💡 Recommendations"):
+                    st.markdown(results['recommendations'])
+            
+            # General results
+            if results.get('main_points'):
+                with st.expander("🎯 Main Points"):
+                    st.markdown(results['main_points'])
+            
+            if results.get('context'):
+                with st.expander("🌍 Context Analysis"):
+                    st.markdown(results['context'])
+            
+            if results.get('citations'):
+                title = "📚 Citations & References" if "Research Paper" in document_type else "📚 References & Sources"
+                with st.expander(title):
+                    st.markdown(results['citations'])
             
             if results.get('keywords'):
                 with st.expander("🏷️ Key Terms & Concepts"):
@@ -472,11 +642,11 @@ def main():
             
             with col1:
                 if st.button("📄 Download as Text"):
-                    formatted_results = format_analysis_results(results, paper_name)
+                    formatted_results = format_analysis_results(results, document_name)
                     st.download_button(
                         label="📄 Download Analysis",
                         data=formatted_results,
-                        file_name=f"analysis_{paper_name.replace('.pdf', '.txt')}",
+                        file_name=f"analysis_{document_name.replace('.pdf', '.txt')}",
                         mime='text/plain'
                     )
             
@@ -486,7 +656,7 @@ def main():
                     report_generator = AdvancedReportGenerator()
                     
                     # Display the advanced interactive report
-                    report_generator.display_streamlit_report(results, paper_name)
+                    report_generator.display_streamlit_report(results, document_name)
         
         else:
             st.info("📤 Upload and analyze an academic document first to see results here.")

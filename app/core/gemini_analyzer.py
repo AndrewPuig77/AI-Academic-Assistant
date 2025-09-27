@@ -115,75 +115,205 @@ class GeminiAnalyzer:
     
     def analyze_paper(self, paper_text: str, analysis_options: Dict[str, bool]) -> Dict[str, str]:
         """
-        Comprehensive analysis of a research paper.
+        Comprehensive analysis of academic content.
         
         Args:
-            paper_text: Extracted text from the research paper
+            paper_text: Extracted text from the document
             analysis_options: Dictionary specifying which analyses to perform
             
         Returns:
             Dictionary containing analysis results
         """
         results = {}
+        document_type = analysis_options.get('document_type', '📖 Other Academic Material')
+        
+        # Store document type in results for later use
+        results['document_type'] = document_type
         
         try:
             # Generate summary if requested
             if analysis_options.get('summary', False):
-                results['summary'] = self.generate_summary(paper_text)
+                results['summary'] = self.generate_summary(paper_text, document_type)
                 time.sleep(1)  # Rate limiting
             
-            # Analyze methodology if requested
+            # Research paper specific analyses
             if analysis_options.get('methodology', False):
                 results['methodology'] = self.analyze_methodology(paper_text)
                 time.sleep(1)
             
-            # Extract citations if requested
-            if analysis_options.get('citations', False):
-                results['citations'] = self.extract_citations(paper_text)
-                time.sleep(1)
-            
-            # Identify research gaps if requested
             if analysis_options.get('gaps', False):
                 results['gaps'] = self.identify_research_gaps(paper_text)
+                time.sleep(1)
+                
+            if analysis_options.get('future_work', False):
+                results['future_work'] = self.suggest_future_research(paper_text)
+                time.sleep(1)
+            
+            # Study material specific analyses
+            if analysis_options.get('concepts', False):
+                results['concepts'] = self.extract_key_concepts(paper_text, document_type)
+                time.sleep(1)
+                
+            if analysis_options.get('examples', False):
+                results['examples'] = self.extract_examples_cases(paper_text, document_type)
+                time.sleep(1)
+                
+            if analysis_options.get('questions', False):
+                results['questions'] = self.generate_study_questions(paper_text, document_type)
+                time.sleep(1)
+                
+            if analysis_options.get('difficulty', False):
+                results['difficulty'] = self.assess_difficulty(paper_text, document_type)
+                time.sleep(1)
+            
+            # Assignment/Essay specific analyses
+            if analysis_options.get('structure', False):
+                results['structure'] = self.analyze_structure(paper_text, document_type)
+                time.sleep(1)
+                
+            if analysis_options.get('arguments', False):
+                results['arguments'] = self.analyze_arguments(paper_text, document_type)
+                time.sleep(1)
+                
+            if analysis_options.get('improvements', False):
+                results['improvements'] = self.suggest_improvements(paper_text, document_type)
+                time.sleep(1)
+            
+            # Report/Guide specific analyses
+            if analysis_options.get('findings', False):
+                results['findings'] = self.extract_findings(paper_text, document_type)
+                time.sleep(1)
+                
+            if analysis_options.get('recommendations', False):
+                results['recommendations'] = self.extract_recommendations(paper_text, document_type)
+                time.sleep(1)
+            
+            # General analyses
+            if analysis_options.get('main_points', False):
+                results['main_points'] = self.extract_main_points(paper_text, document_type)
+                time.sleep(1)
+                
+            if analysis_options.get('context', False):
+                results['context'] = self.analyze_context(paper_text, document_type)
+                time.sleep(1)
+            
+            # Extract citations/references if requested
+            if analysis_options.get('citations', False):
+                results['citations'] = self.extract_citations(paper_text, document_type)
                 time.sleep(1)
             
             # Extract keywords if requested
             if analysis_options.get('keywords', False):
-                results['keywords'] = self.extract_keywords(paper_text)
+                results['keywords'] = self.extract_keywords(paper_text, document_type)
                 time.sleep(1)
             
             # Detailed analysis if requested
             if analysis_options.get('detailed', False):
-                results['detailed'] = self.detailed_analysis(paper_text)
+                results['detailed'] = self.detailed_analysis(paper_text, document_type)
                 time.sleep(1)
             
             logger.info(f"Analysis completed with {len(results)} components")
             return results
             
         except Exception as e:
-            logger.error(f"Error during paper analysis: {str(e)}")
+            logger.error(f"Error during document analysis: {str(e)}")
             raise Exception(f"Analysis failed: {str(e)}")
     
-    def generate_summary(self, paper_text: str) -> str:
-        """Generate an intelligent summary of the research paper."""
+    def generate_summary(self, paper_text: str, document_type: str = "🔬 Research Paper") -> str:
+        """Generate an intelligent summary based on document type."""
         
-        prompt = f"""
-        As an expert research analyst, provide a comprehensive but concise summary of this research paper. 
-        Include the following elements:
+        if "Research Paper" in document_type:
+            # Research paper summary
+            prompt = f"""
+            As an expert research analyst, provide a comprehensive but concise summary of this research paper. 
+            Include the following elements:
 
-        📋 RESEARCH SUMMARY:
-        • **Main Research Question/Problem**: What problem does this paper address?
-        • **Key Methodology**: How did they approach the problem?
-        • **Major Findings**: What are the most significant results?
-        • **Practical Implications**: How can these findings be applied?
-        • **Limitations**: What are the key limitations mentioned?
+            📋 RESEARCH SUMMARY:
+            • **Main Research Question/Problem**: What problem does this paper address?
+            • **Key Methodology**: How did they approach the problem?
+            • **Major Findings**: What are the most significant results?
+            • **Practical Implications**: How can these findings be applied?
+            • **Limitations**: What are the key limitations mentioned?
 
-        Make the summary accessible to both experts and non-experts. Use clear, engaging language.
-        Limit to 300-400 words.
+            Make the summary accessible to both experts and non-experts. Use clear, engaging language.
+            Limit to 300-400 words.
 
-        PAPER TEXT:
-        {paper_text[:4000]}
-        """
+            PAPER TEXT:
+            {paper_text[:4000]}
+            """
+        elif document_type in ["📚 Textbook Chapter", "📝 Lecture Notes", "🗒️ Class Handout"]:
+            # Study material summary
+            prompt = f"""
+            As an educational content expert, provide a clear summary of this study material. 
+            Focus on the learning objectives and key educational content:
+
+            📚 CONTENT SUMMARY:
+            • **Topic/Subject**: What is this content teaching?
+            • **Key Concepts**: What are the main ideas or principles explained?
+            • **Learning Objectives**: What should students understand after reading this?
+            • **Practical Applications**: How are these concepts used in practice?
+            • **Prerequisites**: What background knowledge is assumed?
+
+            Write the summary in a student-friendly way that helps with understanding and retention.
+            Limit to 300-400 words.
+
+            STUDY MATERIAL TEXT:
+            {paper_text[:4000]}
+            """
+        elif document_type in ["📋 Assignment/Homework", "📄 Article/Essay"]:
+            # Assignment/Essay summary
+            prompt = f"""
+            As an academic writing expert, provide a summary of this assignment or essay content:
+
+            📝 CONTENT SUMMARY:
+            • **Main Topic/Theme**: What is this piece about?
+            • **Key Arguments/Points**: What are the primary arguments or points made?
+            • **Structure**: How is the content organized?
+            • **Purpose/Objective**: What is the goal of this writing?
+            • **Target Audience**: Who is this written for?
+
+            Focus on the logical flow and argumentation structure.
+            Limit to 300-400 words.
+
+            CONTENT TEXT:
+            {paper_text[:4000]}
+            """
+        elif document_type in ["📊 Report/Thesis", "🎓 Study Guide"]:
+            # Report/Guide summary
+            prompt = f"""
+            As a technical writing expert, provide a summary of this report or guide:
+
+            📊 DOCUMENT SUMMARY:
+            • **Purpose/Objective**: What is this document trying to accomplish?
+            • **Scope**: What topics or areas does it cover?
+            • **Key Findings/Points**: What are the main conclusions or recommendations?
+            • **Structure**: How is the information organized?
+            • **Intended Use**: How should readers use this information?
+
+            Emphasize practical takeaways and actionable information.
+            Limit to 300-400 words.
+
+            DOCUMENT TEXT:
+            {paper_text[:4000]}
+            """
+        else:
+            # General academic material summary
+            prompt = f"""
+            As an academic content expert, provide a clear summary of this academic material:
+
+            📖 CONTENT SUMMARY:
+            • **Main Topic**: What is the primary subject matter?
+            • **Key Points**: What are the most important ideas presented?
+            • **Structure**: How is the content organized?
+            • **Educational Value**: What can readers learn from this?
+            • **Context**: What field or discipline does this relate to?
+
+            Provide a balanced overview that captures the essential information.
+            Limit to 300-400 words.
+
+            ACADEMIC TEXT:
+            {paper_text[:4000]}
+            """
         
         try:
             response = self.model.generate_content(prompt, generation_config=self.generation_config)
@@ -221,33 +351,6 @@ class GeminiAnalyzer:
         except Exception as e:
             logger.error(f"Error analyzing methodology: {str(e)}")
             return f"Error analyzing methodology: {str(e)}"
-    
-    def extract_citations(self, paper_text: str) -> str:
-        """Extract and analyze citations and references."""
-        
-        prompt = f"""
-        As a bibliometrics expert, analyze the citations and references in this research paper:
-
-        📚 CITATION ANALYSIS:
-        • **Key References**: List the 5-10 most important references cited
-        • **Citation Patterns**: What types of sources are cited? (journals, books, conferences, etc.)
-        • **Temporal Analysis**: What's the age distribution of references? Are they recent or historical?
-        • **Authority Analysis**: Are there citations to seminal works or key authorities in the field?
-        • **Self-Citations**: Are there any apparent self-citations by the authors?
-        • **Citation Context**: How are key citations used? (supporting evidence, contradicting, building upon)
-
-        Extract actual reference information where possible (author, title, journal, year).
-        Identify the theoretical foundation the paper builds upon.
-
-        PAPER TEXT:
-        {paper_text[:4000]}
-        """
-        
-        try:
-            response = self.model.generate_content(prompt, generation_config=self.generation_config)
-            return response.text
-        except Exception as e:
-            logger.error(f"Error extracting citations: {str(e)}")
             return f"Error extracting citations: {str(e)}"
     
     def identify_research_gaps(self, paper_text: str) -> str:
@@ -279,78 +382,86 @@ class GeminiAnalyzer:
             logger.error(f"Error identifying research gaps: {str(e)}")
             return f"Error identifying research gaps: {str(e)}"
     
-    def extract_keywords(self, paper_text: str) -> str:
-        """Extract key terms, concepts, and technical vocabulary."""
+    def detailed_analysis(self, paper_text: str, document_type: str = "🔬 Research Paper") -> str:
+        """Provide comprehensive detailed analysis based on document type."""
         
-        prompt = f"""
-        As a domain expert, extract and organize the key terminology and concepts from this research paper:
+        if "Research Paper" in document_type:
+            # Research paper detailed analysis
+            prompt = f"""
+            As a senior research analyst, provide a comprehensive detailed analysis of this research paper:
 
-        🏷️ KEY TERMS & CONCEPTS:
-        • **Primary Keywords**: The 10-15 most important terms that define this research
-        • **Technical Terms**: Specialized terminology and jargon explained
-        • **Theoretical Concepts**: Key theoretical frameworks or models discussed
-        • **Methodological Terms**: Important methodological concepts and techniques
-        • **Domain-Specific Language**: Field-specific vocabulary and acronyms
-        • **Emerging Terms**: Any new terminology introduced by this research
+            📋 COMPREHENSIVE ANALYSIS:
 
-        For each key term, provide:
-        - The term itself
-        - A brief definition/explanation
-        - How it's used in the context of this research
+            **1. Research Context & Significance**
+            • Why is this research important?
+            • How does it fit in the broader field?
+            • What problem does it solve?
 
-        Organize by importance and thematic relevance.
+            **2. Strengths & Innovations**
+            • What are the key strengths of this work?
+            • What's novel or innovative?
+            • How does it advance the field?
 
-        PAPER TEXT:
-        {paper_text[:4000]}
-        """
-        
-        try:
-            response = self.model.generate_content(prompt, generation_config=self.generation_config)
-            return response.text
-        except Exception as e:
-            logger.error(f"Error extracting keywords: {str(e)}")
-            return f"Error extracting keywords: {str(e)}"
-    
-    def detailed_analysis(self, paper_text: str) -> str:
-        """Provide comprehensive detailed analysis."""
-        
-        prompt = f"""
-        As a senior research analyst, provide a comprehensive detailed analysis of this research paper:
+            **3. Critical Assessment**
+            • What are potential weaknesses or limitations?
+            • Are the conclusions well-supported?
+            • Are there any methodological concerns?
 
-        📋 COMPREHENSIVE ANALYSIS:
+            **4. Impact & Applications**
+            • Who would benefit from these findings?
+            • What are the practical implications?
+            • How might this influence future research?
 
-        **1. Research Context & Significance**
-        • Why is this research important?
-        • How does it fit in the broader field?
-        • What problem does it solve?
+            **5. Overall Quality Rating**
+            • Rate the paper's quality (1-10) across:
+              - Novelty and significance
+              - Methodological rigor
+              - Clarity of presentation
+              - Impact potential
 
-        **2. Strengths & Innovations**
-        • What are the key strengths of this work?
-        • What's novel or innovative?
-        • How does it advance the field?
+            Provide specific examples and evidence for your assessments.
 
-        **3. Critical Assessment**
-        • What are potential weaknesses or limitations?
-        • Are the conclusions well-supported?
-        • Are there any methodological concerns?
+            PAPER TEXT:
+            {paper_text[:4000]}
+            """
+        else:
+            # Study material detailed analysis
+            prompt = f"""
+            As an educational content expert, provide a comprehensive analysis of this study material:
 
-        **4. Impact & Applications**
-        • Who would benefit from these findings?
-        • What are the practical implications?
-        • How might this influence future research?
+            📚 COMPREHENSIVE STUDY MATERIAL ANALYSIS:
 
-        **5. Overall Quality Rating**
-        • Rate the paper's quality (1-10) across:
-          - Novelty and significance
-          - Methodological rigor
-          - Clarity of presentation
-          - Impact potential
+            **1. Educational Value & Learning Objectives**
+            • What are the primary learning objectives?
+            • How well does the content achieve these goals?
+            • What knowledge level is this appropriate for?
 
-        Provide specific examples and evidence for your assessments.
+            **2. Content Quality & Organization**
+            • How well is the information organized?
+            • Are explanations clear and comprehensive?
+            • What are the content strengths?
 
-        PAPER TEXT:
-        {paper_text[:4000]}
-        """
+            **3. Pedagogical Assessment**
+            • Are concepts explained progressively?
+            • Are examples and illustrations effective?
+            • What could improve understanding?
+
+            **4. Practical Application**
+            • How can students apply this knowledge?
+            • What real-world connections are made?
+            • What study strategies would work best?
+
+            **5. Study Recommendations**
+            • Difficulty level assessment (1-10)
+            • Key concepts to focus on
+            • Best study approaches
+            • Time investment needed
+
+            Focus on practical study and learning insights.
+
+            STUDY MATERIAL TEXT:
+            {paper_text[:4000]}
+            """
         
         try:
             response = self.model.generate_content(prompt, generation_config=self.generation_config)
@@ -875,6 +986,345 @@ class GeminiAnalyzer:
                 'content_length': len(content),
                 'generated_at': time.strftime('%Y-%m-%d %H:%M:%S')
             }
+
+    # New analysis methods for different document types
+    def extract_key_concepts(self, content: str, document_type: str) -> str:
+        """Extract key concepts from study materials."""
+        prompt = f"""
+        As an educational expert, identify and explain the key concepts from this study material:
+
+        🎯 KEY CONCEPTS ANALYSIS:
+        • **Core Concepts**: The fundamental ideas students must understand
+        • **Supporting Concepts**: Important secondary concepts that support the main ideas
+        • **Terminology**: Key terms and definitions students should memorize
+        • **Relationships**: How these concepts connect to each other
+        • **Examples**: Concrete examples that illustrate each concept
+
+        Present in a clear, study-friendly format.
+
+        CONTENT: {content[:4000]}
+        """
+        try:
+            response = self.model.generate_content(prompt, generation_config=self.generation_config)
+            return response.text
+        except Exception as e:
+            return f"Error extracting key concepts: {str(e)}"
+
+    def extract_examples_cases(self, content: str, document_type: str) -> str:
+        """Extract examples and case studies."""
+        prompt = f"""
+        As an educational content analyst, identify and organize all examples and case studies:
+
+        💡 EXAMPLES & CASES:
+        • **Real-world Examples**: Practical applications mentioned
+        • **Case Studies**: Detailed scenarios or situations analyzed
+        • **Illustrations**: Visual or conceptual examples used
+        • **Problem Examples**: Sample problems or exercises
+        • **Applications**: How concepts apply in practice
+
+        Format for easy reference and study.
+
+        CONTENT: {content[:4000]}
+        """
+        try:
+            response = self.model.generate_content(prompt, generation_config=self.generation_config)
+            return response.text
+        except Exception as e:
+            return f"Error extracting examples: {str(e)}"
+
+    def generate_study_questions(self, content: str, document_type: str) -> str:
+        """Generate study questions from content."""
+        prompt = f"""
+        As an educational assessment expert, create comprehensive study questions:
+
+        ❓ STUDY QUESTIONS:
+        • **Comprehension Questions**: Test basic understanding
+        • **Application Questions**: Apply concepts to new situations
+        • **Analysis Questions**: Break down complex ideas
+        • **Synthesis Questions**: Combine multiple concepts
+        • **Critical Thinking**: Evaluate and compare ideas
+
+        Include a mix of multiple choice, short answer, and essay questions.
+
+        CONTENT: {content[:4000]}
+        """
+        try:
+            response = self.model.generate_content(prompt, generation_config=self.generation_config)
+            return response.text
+        except Exception as e:
+            return f"Error generating study questions: {str(e)}"
+
+    def assess_difficulty(self, content: str, document_type: str) -> str:
+        """Assess the difficulty level of content."""
+        prompt = f"""
+        As an educational psychologist, assess the difficulty level of this content:
+
+        📊 DIFFICULTY ASSESSMENT:
+        • **Overall Difficulty**: Rate 1-10 with justification
+        • **Prerequisite Knowledge**: What background is needed?
+        • **Complex Areas**: Which sections are most challenging?
+        • **Time Investment**: How much study time is recommended?
+        • **Study Strategies**: Best approaches for this difficulty level
+
+        Provide practical guidance for students.
+
+        CONTENT: {content[:4000]}
+        """
+        try:
+            response = self.model.generate_content(prompt, generation_config=self.generation_config)
+            return response.text
+        except Exception as e:
+            return f"Error assessing difficulty: {str(e)}"
+
+    def analyze_structure(self, content: str, document_type: str) -> str:
+        """Analyze document structure."""
+        prompt = f"""
+        As a document analysis expert, analyze the structure and organization:
+
+        🏗️ STRUCTURE ANALYSIS:
+        • **Overall Organization**: How is content structured?
+        • **Logical Flow**: Does the sequence make sense?
+        • **Section Breakdown**: Main sections and their purposes
+        • **Transitions**: How sections connect
+        • **Effectiveness**: How well does structure support learning?
+
+        Focus on how structure aids comprehension.
+
+        CONTENT: {content[:4000]}
+        """
+        try:
+            response = self.model.generate_content(prompt, generation_config=self.generation_config)
+            return response.text
+        except Exception as e:
+            return f"Error analyzing structure: {str(e)}"
+
+    def analyze_arguments(self, content: str, document_type: str) -> str:
+        """Analyze key arguments presented."""
+        prompt = f"""
+        As an argumentation expert, identify and analyze the key arguments:
+
+        💭 ARGUMENT ANALYSIS:
+        • **Main Arguments**: Primary claims being made
+        • **Supporting Evidence**: Evidence provided for each argument
+        • **Logical Structure**: How arguments are constructed
+        • **Counterarguments**: Alternative viewpoints addressed
+        • **Strength Assessment**: Evaluate argument quality
+
+        Focus on logical reasoning and evidence quality.
+
+        CONTENT: {content[:4000]}
+        """
+        try:
+            response = self.model.generate_content(prompt, generation_config=self.generation_config)
+            return response.text
+        except Exception as e:
+            return f"Error analyzing arguments: {str(e)}"
+
+    def suggest_improvements(self, content: str, document_type: str) -> str:
+        """Suggest improvements for academic work."""
+        prompt = f"""
+        As an academic writing coach, suggest constructive improvements:
+
+        ✨ IMPROVEMENT SUGGESTIONS:
+        • **Content Clarity**: Ways to make ideas clearer
+        • **Structure Enhancement**: Organizational improvements
+        • **Evidence Strengthening**: Better support for claims
+        • **Writing Style**: Clarity and engagement improvements
+        • **Academic Standards**: Meeting academic expectations
+
+        Provide specific, actionable suggestions.
+
+        CONTENT: {content[:4000]}
+        """
+        try:
+            response = self.model.generate_content(prompt, generation_config=self.generation_config)
+            return response.text
+        except Exception as e:
+            return f"Error suggesting improvements: {str(e)}"
+
+    def extract_findings(self, content: str, document_type: str) -> str:
+        """Extract key findings from reports/documents."""
+        prompt = f"""
+        As a research analyst, identify and summarize key findings:
+
+        📈 KEY FINDINGS:
+        • **Primary Findings**: Most important discoveries or results
+        • **Secondary Findings**: Supporting observations
+        • **Data Insights**: What the data reveals
+        • **Patterns**: Trends or patterns identified
+        • **Significance**: Why these findings matter
+
+        Present in clear, prioritized format.
+
+        CONTENT: {content[:4000]}
+        """
+        try:
+            response = self.model.generate_content(prompt, generation_config=self.generation_config)
+            return response.text
+        except Exception as e:
+            return f"Error extracting findings: {str(e)}"
+
+    def extract_recommendations(self, content: str, document_type: str) -> str:
+        """Extract recommendations from documents."""
+        prompt = f"""
+        As a policy analyst, identify and organize all recommendations:
+
+        💡 RECOMMENDATIONS:
+        • **Primary Recommendations**: Main suggested actions
+        • **Implementation Steps**: How to execute recommendations
+        • **Priority Level**: Which recommendations are most important
+        • **Target Audience**: Who should act on these recommendations
+        • **Expected Outcomes**: What results are anticipated
+
+        Focus on actionable guidance.
+
+        CONTENT: {content[:4000]}
+        """
+        try:
+            response = self.model.generate_content(prompt, generation_config=self.generation_config)
+            return response.text
+        except Exception as e:
+            return f"Error extracting recommendations: {str(e)}"
+
+    def extract_main_points(self, content: str, document_type: str) -> str:
+        """Extract main points from any academic content."""
+        prompt = f"""
+        As a content analyst, identify and organize the main points:
+
+        🎯 MAIN POINTS:
+        • **Central Ideas**: The core messages or themes
+        • **Supporting Points**: Important details that support main ideas
+        • **Key Takeaways**: What readers should remember
+        • **Action Items**: Any suggested actions or next steps
+        • **Priority Ranking**: Order of importance
+
+        Present in a clear, hierarchical format.
+
+        CONTENT: {content[:4000]}
+        """
+        try:
+            response = self.model.generate_content(prompt, generation_config=self.generation_config)
+            return response.text
+        except Exception as e:
+            return f"Error extracting main points: {str(e)}"
+
+    def analyze_context(self, content: str, document_type: str) -> str:
+        """Analyze the context and background."""
+        prompt = f"""
+        As a contextual analyst, provide background and situational context:
+
+        🌍 CONTEXT ANALYSIS:
+        • **Historical Context**: When and why was this created?
+        • **Field/Domain**: What academic or professional field?
+        • **Intended Audience**: Who is the target reader?
+        • **Purpose**: Why was this document created?
+        • **Broader Significance**: How does this fit into larger conversations?
+
+        Help readers understand the bigger picture.
+
+        CONTENT: {content[:4000]}
+        """
+        try:
+            response = self.model.generate_content(prompt, generation_config=self.generation_config)
+            return response.text
+        except Exception as e:
+            return f"Error analyzing context: {str(e)}"
+
+    def suggest_future_research(self, content: str) -> str:
+        """Suggest future research directions."""
+        prompt = f"""
+        As a research strategist, suggest future research directions:
+
+        🔮 FUTURE RESEARCH DIRECTIONS:
+        • **Immediate Next Steps**: Short-term research opportunities
+        • **Long-term Investigations**: Major research programs needed
+        • **Interdisciplinary Connections**: Other fields to involve
+        • **Methodological Advances**: New approaches to try
+        • **Practical Applications**: Real-world implementation studies
+
+        Focus on feasible and impactful research directions.
+
+        CONTENT: {content[:4000]}
+        """
+        try:
+            response = self.model.generate_content(prompt, generation_config=self.generation_config)
+            return response.text
+        except Exception as e:
+            return f"Error suggesting future research: {str(e)}"
+
+    def extract_citations(self, content: str, document_type: str = "🔬 Research Paper") -> str:
+        """Extract citations and references based on document type."""
+        if "Research Paper" in document_type:
+            prompt = f"""
+            As a bibliography expert, extract and analyze citations:
+
+            📚 CITATIONS & REFERENCES:
+            • **Key References**: Most important sources cited
+            • **Reference Types**: Books, journals, websites, etc.
+            • **Citation Quality**: Credibility and relevance assessment
+            • **Research Lineage**: How this builds on previous work
+            • **Missing References**: Potential sources that should be included
+
+            Focus on the scholarly foundation of this work.
+            """
+        else:
+            prompt = f"""
+            As a reference analyst, identify sources and references:
+
+            📚 REFERENCES & SOURCES:
+            • **Primary Sources**: Original materials referenced
+            • **Supporting Materials**: Additional resources mentioned
+            • **Credibility Assessment**: Quality of sources used
+            • **Further Reading**: Related materials for deeper study
+            • **Source Types**: Books, articles, websites, etc.
+
+            Help readers understand the information foundation.
+            """
+        
+        prompt += f"\n\nCONTENT: {content[:4000]}"
+        
+        try:
+            response = self.model.generate_content(prompt, generation_config=self.generation_config)
+            return response.text
+        except Exception as e:
+            return f"Error extracting references: {str(e)}"
+
+    def extract_keywords(self, content: str, document_type: str = "🔬 Research Paper") -> str:
+        """Extract keywords and key terms based on document type."""
+        if "Research Paper" in document_type:
+            prompt = f"""
+            As a domain expert, extract research terminology:
+
+            🏷️ RESEARCH KEYWORDS:
+            • **Primary Keywords**: Core research terms
+            • **Technical Terminology**: Specialized vocabulary
+            • **Theoretical Concepts**: Key theoretical terms
+            • **Methodological Terms**: Research method vocabulary
+            • **Field-Specific Language**: Discipline-specific terms
+
+            Focus on terms crucial for research and academic discourse.
+            """
+        else:
+            prompt = f"""
+            As an educational vocabulary expert, extract key terms:
+
+            🏷️ KEY TERMS & VOCABULARY:
+            • **Essential Terms**: Must-know vocabulary
+            • **Concept Names**: Important concept labels
+            • **Technical Terms**: Specialized vocabulary explained
+            • **Study Terms**: Terms students should memorize
+            • **Context Clues**: How terms are used in context
+
+            Focus on vocabulary important for learning and comprehension.
+            """
+        
+        prompt += f"\n\nCONTENT: {content[:4000]}"
+        
+        try:
+            response = self.model.generate_content(prompt, generation_config=self.generation_config)
+            return response.text
+        except Exception as e:
+            return f"Error extracting keywords: {str(e)}"
 
 # Example usage and testing
 if __name__ == "__main__":
