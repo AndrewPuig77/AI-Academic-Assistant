@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Import custom modules (will be created next)
-from app.core.pdf_processor import PDFProcessor
+from app.core.document_processor import DocumentProcessor
 from app.core.gemini_analyzer import GeminiAnalyzer
 from app.utils.helpers import format_analysis_results, create_download_link
 from app.utils.report_generator import AdvancedReportGenerator
@@ -458,9 +458,9 @@ def main():
         
         # File uploader
         uploaded_file = st.file_uploader(
-            "Choose your PDF file",
-            type=['pdf'],
-            help="Upload a research paper, textbook chapter, lecture notes, or any academic material in PDF format (max 10MB)"
+            "Choose your document",
+            type=['pdf', 'docx', 'txt'],
+            help="Upload a research paper, textbook chapter, lecture notes, or any academic material (PDF, Word, or Text format - max 10MB)"
         )
         
         if uploaded_file is not None:
@@ -573,7 +573,7 @@ def main():
                     # Step 1: Initialize processors
                     status_text.text("🔧 Initializing AI processors...")
                     progress_bar.progress(10)
-                    pdf_processor = PDFProcessor()
+                    document_processor = DocumentProcessor()
                     analyzer = GeminiAnalyzer()
                     
                     # Step 2: Save uploaded file
@@ -583,10 +583,10 @@ def main():
                     with open(temp_path, "wb") as f:
                         f.write(uploaded_file.read())
                     
-                    # Step 3: Extract text from PDF
-                    status_text.text("📄 Extracting text from PDF...")
+                    # Step 3: Extract text from document
+                    status_text.text("📄 Extracting text from document...")
                     progress_bar.progress(40)
-                    extracted_text = pdf_processor.extract_text(temp_path)
+                    extracted_text = document_processor.extract_text(temp_path)
                     
                     # Step 4: Prepare analysis options
                     status_text.text("⚙️ Configuring analysis options...")
