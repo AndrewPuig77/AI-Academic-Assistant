@@ -122,37 +122,60 @@ def main():
             # Analyze button
             if st.button("🚀 Analyze Paper", type="primary", use_container_width=True):
                 try:
-                    with st.spinner("🔄 Processing PDF and analyzing with Gemini AI..."):
-                        # Initialize processors
-                        pdf_processor = PDFProcessor()
-                        analyzer = GeminiAnalyzer()
-                        
-                        # Save uploaded file temporarily
-                        temp_path = f"uploads/{uploaded_file.name}"
-                        with open(temp_path, "wb") as f:
-                            f.write(uploaded_file.read())
-                        
-                        # Process PDF
-                        extracted_text = pdf_processor.extract_text(temp_path)
-                        
-                        # Analyze with Gemini
-                        analysis_options = {
-                            'summary': include_summary,
-                            'methodology': include_methodology,
-                            'citations': include_citations,
-                            'gaps': include_gaps,
-                            'keywords': include_keywords,
-                            'detailed': detailed_analysis
-                        }
-                        
-                        analysis_results = analyzer.analyze_paper(extracted_text, analysis_options)
-                        
-                        # Store results in session state
-                        st.session_state['analysis_results'] = analysis_results
-                        st.session_state['paper_name'] = uploaded_file.name
-                        
-                        # Clean up temp file
-                        os.remove(temp_path)
+                    # Create progress bar
+                    progress_bar = st.progress(0)
+                    status_text = st.empty()
+                    
+                    # Step 1: Initialize processors
+                    status_text.text("🔧 Initializing AI processors...")
+                    progress_bar.progress(10)
+                    pdf_processor = PDFProcessor()
+                    analyzer = GeminiAnalyzer()
+                    
+                    # Step 2: Save uploaded file
+                    status_text.text("💾 Saving uploaded file...")
+                    progress_bar.progress(20)
+                    temp_path = f"uploads/{uploaded_file.name}"
+                    with open(temp_path, "wb") as f:
+                        f.write(uploaded_file.read())
+                    
+                    # Step 3: Extract text from PDF
+                    status_text.text("📄 Extracting text from PDF...")
+                    progress_bar.progress(40)
+                    extracted_text = pdf_processor.extract_text(temp_path)
+                    
+                    # Step 4: Prepare analysis options
+                    status_text.text("⚙️ Configuring analysis options...")
+                    progress_bar.progress(50)
+                    analysis_options = {
+                        'summary': include_summary,
+                        'methodology': include_methodology,
+                        'citations': include_citations,
+                        'gaps': include_gaps,
+                        'keywords': include_keywords,
+                        'detailed': detailed_analysis
+                    }
+                    
+                    # Step 5: AI Analysis (longest step)
+                    status_text.text("🧠 Analyzing with Google Gemini AI... (this may take a moment)")
+                    progress_bar.progress(60)
+                    analysis_results = analyzer.analyze_paper(extracted_text, analysis_options)
+                    progress_bar.progress(85)
+                    
+                    # Step 6: Store results
+                    status_text.text("💾 Saving analysis results...")
+                    progress_bar.progress(95)
+                    st.session_state['analysis_results'] = analysis_results
+                    st.session_state['paper_name'] = uploaded_file.name
+                    
+                    # Step 7: Clean up
+                    status_text.text("🧹 Cleaning up temporary files...")
+                    progress_bar.progress(100)
+                    os.remove(temp_path)
+                    
+                    # Clear progress indicators
+                    progress_bar.empty()
+                    status_text.empty()
                     
                     st.markdown('<div class="success-message">✅ Analysis complete! Check the Results tab.</div>', unsafe_allow_html=True)
                     

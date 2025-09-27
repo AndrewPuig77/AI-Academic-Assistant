@@ -258,16 +258,31 @@ class AdvancedReportGenerator:
             return report_data
     
     def display_streamlit_report(self, results: Dict[str, str], paper_name: str):
-        """Display the advanced report in Streamlit"""
+        """Display the advanced report in Streamlit with progress tracking"""
         st.header("📊 Advanced Analysis Report")
         st.markdown(f"**Paper:** {paper_name}")
         st.markdown(f"**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         
+        # Create progress tracking for report generation
+        report_progress = st.progress(0)
+        report_status = st.empty()
+        
+        # Step 1: Generate statistics
+        report_status.text("📊 Analyzing text statistics...")
+        report_progress.progress(20)
+        
         # Generate report data
         report_data = self.generate_interactive_report(results, paper_name)
         
+        # Step 2: Prepare visualizations
+        report_status.text("📈 Creating interactive charts...")
+        report_progress.progress(50)
+        
         # Display statistics
         if report_data.get('statistics'):
+            report_status.text("📋 Processing section metrics...")
+            report_progress.progress(70)
+            
             st.subheader("📈 Analysis Statistics")
             
             # Create metrics
@@ -285,6 +300,10 @@ class AdvancedReportGenerator:
             with col4:
                 avg_words_per_section = total_words // sections_analyzed if sections_analyzed > 0 else 0
                 st.metric("Avg Words/Section", f"{avg_words_per_section:,}")
+        
+        # Step 3: Display charts
+        report_status.text("🎨 Rendering visualizations...")
+        report_progress.progress(85)
         
         # Display charts
         charts = report_data.get('charts', {})
