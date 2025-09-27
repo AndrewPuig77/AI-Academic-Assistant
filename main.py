@@ -267,7 +267,21 @@ def main():
             st.markdown("---")
         
         st.markdown("""
-        ### 🛠️ Technology Stack
+        ### � Free Tier Information
+        
+        **This application uses Google Gemini's generous free tier:**
+        
+        - ✨ **Gemini 1.5 Flash**: 1,500 requests per day (likely what you're using)
+        - 🧠 **Gemini 2.5 Pro**: 100 requests per day  
+        - 📊 **Analysis Capacity**: Analyze 250-500 research papers daily!
+        - 🔄 **Usage**: Each analysis uses 3-6 API requests depending on options selected
+        - ⏰ **Reset**: Quota resets daily at midnight UTC
+        
+        **Model Selection**: The app automatically selects the best available model for optimal performance.
+        
+        ---
+        
+        ### �🛠️ Technology Stack
         - **Frontend**: Streamlit
         - **AI Engine**: Google Gemini AI
         - **PDF Processing**: PyMuPDF
