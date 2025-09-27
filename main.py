@@ -25,35 +25,279 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for better styling
+# Custom CSS for sleek black theme
 st.markdown("""
 <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    /* Global Styles */
+    .stApp {
+        background: linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 100%);
+        color: #ffffff;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    
+    /* Hide Streamlit branding */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    
+    /* Main header styling */
     .main-header {
-        font-size: 2.5rem;
-        color: #1f77b4;
+        font-size: 3rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #00d2ff 0%, #3a47d5 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
         text-align: center;
         margin-bottom: 2rem;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        text-shadow: 0 0 30px rgba(0, 210, 255, 0.3);
+        letter-spacing: -1px;
     }
+    
+    /* Subtitle styling */
+    .stMarkdown h3 {
+        color: #a0a0a0;
+        text-align: center;
+        font-weight: 400;
+        margin-bottom: 3rem;
+    }
+    
+    /* Sidebar styling */
+    .css-1d391kg {
+        background: linear-gradient(180deg, #1a1a1a 0%, #2d2d2d 100%);
+        border-right: 1px solid #333;
+    }
+    
+    /* Sidebar headers */
+    .css-1d391kg h1, .css-1d391kg h2, .css-1d391kg h3 {
+        color: #ffffff;
+        font-weight: 600;
+    }
+    
+    /* Cards and containers */
     .feature-card {
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-        padding: 1.5rem;
-        border-radius: 10px;
-        margin: 1rem 0;
-        border-left: 4px solid #1f77b4;
+        background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
+        padding: 2rem;
+        border-radius: 16px;
+        margin: 1.5rem 0;
+        border: 1px solid #333;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
     }
+    
+    .feature-card:hover {
+        transform: translateY(-4px);
+        border: 1px solid #00d2ff;
+        box-shadow: 0 12px 48px rgba(0, 210, 255, 0.2);
+    }
+    
+    /* Analysis sections */
     .analysis-section {
-        background: #f8f9fa;
-        padding: 1rem;
-        border-radius: 8px;
-        margin: 0.5rem 0;
+        background: rgba(30, 30, 30, 0.8);
+        padding: 1.5rem;
+        border-radius: 12px;
+        margin: 1rem 0;
+        border: 1px solid #333;
+        backdrop-filter: blur(8px);
     }
+    
+    /* Success messages */
     .success-message {
-        background: #d4edda;
-        color: #155724;
-        padding: 1rem;
-        border-radius: 5px;
-        border-left: 4px solid #28a745;
+        background: linear-gradient(135deg, #1a2f1a 0%, #2d4a2d 100%);
+        color: #4ade80;
+        padding: 1.5rem;
+        border-radius: 12px;
+        border: 1px solid #4ade80;
+        box-shadow: 0 4px 16px rgba(74, 222, 128, 0.2);
+    }
+    
+    /* Tabs styling */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 4px;
+        background: rgba(20, 20, 20, 0.8);
+        border-radius: 16px;
+        padding: 8px;
+        backdrop-filter: blur(10px);
+        border: 1px solid #333;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        background: transparent;
+        border-radius: 12px;
+        color: #a0a0a0;
+        font-weight: 500;
+        padding: 12px 24px;
+        transition: all 0.3s ease;
+        border: 1px solid transparent;
+    }
+    
+    .stTabs [data-baseweb="tab"]:hover {
+        background: rgba(0, 210, 255, 0.1);
+        color: #ffffff;
+        border: 1px solid rgba(0, 210, 255, 0.3);
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, #00d2ff 0%, #3a47d5 100%);
+        color: #ffffff !important;
+        border: 1px solid #00d2ff;
+        box-shadow: 0 4px 16px rgba(0, 210, 255, 0.3);
+    }
+    
+    /* Buttons */
+    .stButton > button {
+        background: linear-gradient(135deg, #00d2ff 0%, #3a47d5 100%);
+        color: #ffffff;
+        border: none;
+        border-radius: 12px;
+        padding: 0.75rem 2rem;
+        font-weight: 600;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 16px rgba(0, 210, 255, 0.3);
+    }
+    
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 210, 255, 0.4);
+        background: linear-gradient(135deg, #00d2ff 0%, #2d3db5 100%);
+    }
+    
+    /* File uploader */
+    .stFileUploader > div {
+        background: rgba(30, 30, 30, 0.8);
+        border: 2px dashed #333;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+    }
+    
+    .stFileUploader > div:hover {
+        border-color: #00d2ff;
+        background: rgba(0, 210, 255, 0.05);
+    }
+    
+    /* Expanders */
+    .streamlit-expanderHeader {
+        background: rgba(30, 30, 30, 0.8);
+        border: 1px solid #333;
+        border-radius: 12px;
+        color: #ffffff;
+        font-weight: 600;
+    }
+    
+    .streamlit-expanderContent {
+        background: rgba(20, 20, 20, 0.6);
+        border: 1px solid #333;
+        border-top: none;
+        border-radius: 0 0 12px 12px;
+    }
+    
+    /* Metrics */
+    .metric-container {
+        background: rgba(30, 30, 30, 0.8);
+        padding: 1.5rem;
+        border-radius: 12px;
+        border: 1px solid #333;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+    
+    .metric-container:hover {
+        border-color: #00d2ff;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 210, 255, 0.2);
+    }
+    
+    /* Progress bars */
+    .stProgress > div > div > div > div {
+        background: linear-gradient(90deg, #00d2ff 0%, #3a47d5 100%);
+    }
+    
+    /* Text inputs */
+    .stTextInput > div > div > input {
+        background: rgba(30, 30, 30, 0.8);
+        border: 1px solid #333;
+        border-radius: 8px;
+        color: #ffffff;
+    }
+    
+    .stTextInput > div > div > input:focus {
+        border-color: #00d2ff;
+        box-shadow: 0 0 16px rgba(0, 210, 255, 0.3);
+    }
+    
+    /* Selectboxes */
+    .stSelectbox > div > div > select {
+        background: rgba(30, 30, 30, 0.8);
+        border: 1px solid #333;
+        color: #ffffff;
+    }
+    
+    /* Info boxes */
+    .stInfo {
+        background: rgba(0, 210, 255, 0.1);
+        border: 1px solid rgba(0, 210, 255, 0.3);
+        border-radius: 12px;
+    }
+    
+    /* Warning boxes */
+    .stWarning {
+        background: rgba(255, 193, 7, 0.1);
+        border: 1px solid rgba(255, 193, 7, 0.3);
+        border-radius: 12px;
+    }
+    
+    /* Error boxes */
+    .stError {
+        background: rgba(220, 53, 69, 0.1);
+        border: 1px solid rgba(220, 53, 69, 0.3);
+        border-radius: 12px;
+    }
+    
+    /* Success boxes */
+    .stSuccess {
+        background: rgba(74, 222, 128, 0.1);
+        border: 1px solid rgba(74, 222, 128, 0.3);
+        border-radius: 12px;
+    }
+    
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+        background: #1a1a1a;
+        border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+        background: linear-gradient(135deg, #00d2ff 0%, #3a47d5 100%);
+        border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(135deg, #00b8e6 0%, #2d3db5 100%);
+    }
+    
+    /* Glow effects */
+    .glow {
+        box-shadow: 0 0 20px rgba(0, 210, 255, 0.5);
+    }
+    
+    /* Animation */
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.02); }
+        100% { transform: scale(1); }
+    }
+    
+    .pulse {
+        animation: pulse 2s infinite;
     }
 </style>
 """, unsafe_allow_html=True)
