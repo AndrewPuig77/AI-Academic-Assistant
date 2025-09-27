@@ -5,7 +5,6 @@
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB)](https://python.org/)
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-> 🏆 **Winner of "Best Use of Gemini API"** - *An AI-powered research paper analysis tool that makes researchers say "WHOA!"*
 
 ![AI Research Paper Assistant Demo](https://via.placeholder.com/800x400/1f77b4/ffffff?text=AI+Research+Paper+Assistant)
 
