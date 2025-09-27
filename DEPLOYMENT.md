@@ -7,6 +7,7 @@ This guide will help you deploy the AI Research Paper Analyst to Streamlit Commu
 1. **GitHub Repository**: Your code must be in a public GitHub repository
 2. **Google Gemini API Key**: Get one from [Google AI Studio](https://aistudio.google.com/app/apikey)
 3. **Streamlit Community Cloud Account**: Sign up at [share.streamlit.io](https://share.streamlit.io)
+4. **Python Version**: Compatible with Python 3.10+ (specified in runtime.txt)
 
 ## 🛠️ Deployment Steps
 
@@ -55,11 +56,17 @@ GEMINI_MAX_TOKENS = 8192
 ## 🔧 Configuration Details
 
 ### Requirements.txt
-Your app uses these key dependencies:
-- `streamlit==1.50.0`
-- `google-generativeai==0.8.5`
-- `PyMuPDF==1.26.4` (PDF processing)
+Your app uses these key dependencies (with flexible versioning for compatibility):
+- `streamlit>=1.28.0` (modern Streamlit features)
+- `google-generativeai>=0.8.0` (Gemini AI integration)
+- `PyMuPDF>=1.23.0` (PDF processing)
+- `networkx>=2.8,<3.5` (graph processing, Python 3.10 compatible)
 - `pandas`, `matplotlib`, `plotly` (data visualization)
+
+### Python Version
+- **Specified**: Python 3.10 (in runtime.txt and .python-version)
+- **Compatible**: Python 3.10, 3.11, 3.12
+- **CI/CD Ready**: Fixed version conflicts for automated deployments
 
 ### Streamlit Config
 The `.streamlit/config.toml` file sets:
