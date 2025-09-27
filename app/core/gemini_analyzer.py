@@ -383,6 +383,219 @@ class GeminiAnalyzer:
         except Exception as e:
             logger.error(f"Error comparing papers: {str(e)}")
             return f"Error comparing papers: {str(e)}"
+    
+    def suggest_related_papers(self, paper_text: str) -> str:
+        """Generate suggestions for related papers and research areas."""
+        
+        prompt = f"""
+        As a research librarian and academic expert, analyze this research paper and suggest related papers, topics, and search strategies:
+
+        🔍 RELATED RESEARCH SUGGESTIONS:
+
+        **1. Key Research Areas & Keywords**
+        • Primary research domain and subfields
+        • Important technical keywords for searches
+        • Alternative terminology used in this field
+
+        **2. Foundational Papers to Find**
+        • Seminal works that this paper likely builds upon
+        • Classic papers in this research area
+        • Highly-cited papers in similar topics
+
+        **3. Contemporary Research Directions**
+        • Current trends in this research area
+        • Recent developments and emerging topics
+        • Active research groups and institutions
+
+        **4. Search Strategy Recommendations**
+        • Database search terms and boolean queries
+        • Specific journals to explore
+        • Conference proceedings to investigate
+        • Author names to follow
+
+        **5. Cross-Disciplinary Connections**
+        • Related fields that might offer insights
+        • Interdisciplinary research opportunities
+        • Applications in other domains
+
+        Format as actionable research guidance with specific suggestions.
+
+        PAPER TEXT:
+        {paper_text[:4000]}
+        """
+        
+        try:
+            response = self.model.generate_content(prompt, generation_config=self.generation_config)
+            return response.text
+        except Exception as e:
+            logger.error(f"Error generating related paper suggestions: {str(e)}")
+            return f"Error generating related paper suggestions: {str(e)}"
+    
+    def generate_research_questions(self, paper_text: str) -> str:
+        """Generate potential research questions based on the paper content."""
+        
+        prompt = f"""
+        As a research methodology expert, analyze this paper and generate meaningful research questions for future investigation:
+
+        ❓ RESEARCH QUESTION GENERATOR:
+
+        **1. Direct Extensions**
+        • Questions that directly build on this work
+        • Natural next steps for investigation
+        • Unexplored parameters or variables
+
+        **2. Methodological Questions**
+        • Questions about improving the research methods
+        • Alternative approaches to test the same hypothesis
+        • Validation and replication studies needed
+
+        **3. Broader Implications**
+        • Questions about wider applications
+        • Scalability and generalization issues
+        • Real-world implementation challenges
+
+        **4. Comparative Studies**
+        • Questions comparing this approach to alternatives
+        • Cross-population or cross-context studies
+        • Historical or temporal comparisons
+
+        **5. Critical Analysis Questions**
+        • Questions challenging assumptions
+        • Questions about limitations and edge cases
+        • Questions about unintended consequences
+
+        **6. Interdisciplinary Questions**
+        • Questions connecting to other fields
+        • Questions about broader societal impact
+        • Questions about ethical implications
+
+        Format each question clearly with brief rationale for why it's worth investigating.
+
+        PAPER TEXT:
+        {paper_text[:4000]}
+        """
+        
+        try:
+            response = self.model.generate_content(prompt, generation_config=self.generation_config)
+            return response.text
+        except Exception as e:
+            logger.error(f"Error generating research questions: {str(e)}")
+            return f"Error generating research questions: {str(e)}"
+    
+    def build_hypotheses(self, paper_text: str) -> str:
+        """Generate new hypotheses based on the paper's findings and gaps."""
+        
+        prompt = f"""
+        As a scientific theorist and hypothesis developer, analyze this research paper and propose new testable hypotheses:
+
+        💡 HYPOTHESIS BUILDER:
+
+        **1. Extension Hypotheses**
+        • Hypotheses that extend current findings to new contexts
+        • Predictions about scaling or generalizing results
+        • Hypotheses about boundary conditions
+
+        **2. Mechanism Hypotheses**
+        • Hypotheses about underlying mechanisms not fully explored
+        • Causal pathway hypotheses
+        • Process improvement hypotheses
+
+        **3. Comparative Hypotheses**
+        • Hypotheses comparing different approaches or conditions
+        • Hypotheses about relative effectiveness
+        • Hypotheses about optimal parameters
+
+        **4. Interaction Hypotheses**
+        • Hypotheses about variable interactions not tested
+        • Hypotheses about contextual moderators
+        • Hypotheses about synergistic effects
+
+        **5. Novel Application Hypotheses**
+        • Hypotheses about applying findings to new domains
+        • Hypotheses about cross-disciplinary applications
+        • Hypotheses about practical implementations
+
+        **6. Contradiction/Alternative Hypotheses**
+        • Alternative explanations for observed phenomena
+        • Hypotheses that challenge current assumptions
+        • Hypotheses about conflicting findings
+
+        Format each hypothesis as: "H: [Testable statement]" followed by brief justification and suggested testing approach.
+
+        PAPER TEXT:
+        {paper_text[:4000]}
+        """
+        
+        try:
+            response = self.model.generate_content(prompt, generation_config=self.generation_config)
+            return response.text
+        except Exception as e:
+            logger.error(f"Error building hypotheses: {str(e)}")
+            return f"Error building hypotheses: {str(e)}"
+    
+    def generate_research_proposal(self, paper_text: str) -> str:
+        """Generate a research proposal based on the paper's findings and gaps."""
+        
+        prompt = f"""
+        As a grant writing expert and research strategist, analyze this paper and draft a compelling research proposal outline:
+
+        📋 RESEARCH PROPOSAL ASSISTANT:
+
+        **1. EXECUTIVE SUMMARY**
+        • Compelling one-paragraph summary
+        • Key innovation and expected impact
+        • Funding justification
+
+        **2. RESEARCH PROBLEM & SIGNIFICANCE**
+        • Clear problem statement building on this work
+        • Why this research matters now
+        • Knowledge gaps to be addressed
+        • Potential societal/scientific impact
+
+        **3. LITERATURE CONTEXT**
+        • How this builds on current paper and related work
+        • What's missing in current research
+        • Positioning in the research landscape
+
+        **4. RESEARCH OBJECTIVES & HYPOTHESES**
+        • 3-5 specific, measurable objectives
+        • Testable hypotheses
+        • Expected outcomes and deliverables
+
+        **5. METHODOLOGY OVERVIEW**
+        • Research design approach
+        • Key methods and techniques
+        • Innovation in methodology
+        • Validation and quality assurance
+
+        **6. TIMELINE & MILESTONES**
+        • Major phases and timeline
+        • Key deliverables and milestones
+        • Risk mitigation strategies
+
+        **7. EXPECTED OUTCOMES**
+        • Publications anticipated
+        • Practical applications
+        • Impact on field and society
+        • Future research directions
+
+        **8. BUDGET CONSIDERATIONS**
+        • Major cost categories
+        • Justification for resources
+        • Cost-effectiveness argument
+
+        Format as a professional research proposal outline ready for grant applications.
+
+        PAPER TEXT:
+        {paper_text[:4000]}
+        """
+        
+        try:
+            response = self.model.generate_content(prompt, generation_config=self.generation_config)
+            return response.text
+        except Exception as e:
+            logger.error(f"Error generating research proposal: {str(e)}")
+            return f"Error generating research proposal: {str(e)}"
 
 # Example usage and testing
 if __name__ == "__main__":

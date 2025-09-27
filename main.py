@@ -332,7 +332,7 @@ def main():
             st.markdown(f"- {feature}")
     
     # Main content area
-    tab1, tab2, tab3 = st.tabs(["📤 Upload & Analyze", "📊 Results", "ℹ️ About"])
+    tab1, tab2, tab3, tab4 = st.tabs(["📤 Upload & Analyze", "📊 Results", "🔬 Research Tools", "ℹ️ About"])
     
     with tab1:
         st.header("Upload Your Research Paper")
@@ -410,6 +410,7 @@ def main():
                     status_text.text("💾 Saving analysis results...")
                     progress_bar.progress(95)
                     st.session_state['analysis_results'] = analysis_results
+                    st.session_state['analyzed_content'] = extracted_text
                     st.session_state['paper_name'] = uploaded_file.name
                     
                     # Step 7: Clean up
@@ -486,6 +487,109 @@ def main():
             st.info("📤 Upload and analyze a paper first to see results here.")
     
     with tab3:
+        st.header("🔬 Advanced Research Tools")
+        
+        if st.session_state.get('analyzed_content') and st.session_state.get('analysis_results'):
+            st.markdown("### 🚀 AI-Powered Research Assistant")
+            st.markdown("Generate advanced insights and research directions based on your analyzed paper.")
+            
+            # Create columns for the research tools
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                if st.button("🔍 Find Related Papers", use_container_width=True):
+                    with st.spinner("🔍 Analyzing research landscape..."):
+                        analyzer = GeminiAnalyzer()
+                        related_papers = analyzer.suggest_related_papers(st.session_state.analyzed_content)
+                        st.session_state['related_papers'] = related_papers
+                
+                if st.button("❓ Generate Research Questions", use_container_width=True):
+                    with st.spinner("❓ Generating research questions..."):
+                        analyzer = GeminiAnalyzer()
+                        research_questions = analyzer.generate_research_questions(st.session_state.analyzed_content)
+                        st.session_state['research_questions'] = research_questions
+            
+            with col2:
+                if st.button("💡 Build New Hypotheses", use_container_width=True):
+                    with st.spinner("💡 Building hypotheses..."):
+                        analyzer = GeminiAnalyzer()
+                        hypotheses = analyzer.build_hypotheses(st.session_state.analyzed_content)
+                        st.session_state['hypotheses'] = hypotheses
+                
+                if st.button("📋 Draft Research Proposal", use_container_width=True):
+                    with st.spinner("📋 Drafting research proposal..."):
+                        analyzer = GeminiAnalyzer()
+                        proposal = analyzer.generate_research_proposal(st.session_state.analyzed_content)
+                        st.session_state['research_proposal'] = proposal
+            
+            # Display results
+            if 'related_papers' in st.session_state:
+                with st.expander("🔍 Related Papers & Research Areas", expanded=True):
+                    st.markdown(st.session_state.related_papers)
+                    st.download_button(
+                        label="📥 Download Related Papers Guide",
+                        data=st.session_state.related_papers,
+                        file_name="related_papers_guide.txt",
+                        mime="text/plain"
+                    )
+            
+            if 'research_questions' in st.session_state:
+                with st.expander("❓ Generated Research Questions", expanded=True):
+                    st.markdown(st.session_state.research_questions)
+                    st.download_button(
+                        label="📥 Download Research Questions",
+                        data=st.session_state.research_questions,
+                        file_name="research_questions.txt",
+                        mime="text/plain"
+                    )
+            
+            if 'hypotheses' in st.session_state:
+                with st.expander("💡 New Hypotheses", expanded=True):
+                    st.markdown(st.session_state.hypotheses)
+                    st.download_button(
+                        label="📥 Download Hypotheses",
+                        data=st.session_state.hypotheses,
+                        file_name="research_hypotheses.txt",
+                        mime="text/plain"
+                    )
+            
+            if 'research_proposal' in st.session_state:
+                with st.expander("📋 Research Proposal Draft", expanded=True):
+                    st.markdown(st.session_state.research_proposal)
+                    st.download_button(
+                        label="📥 Download Proposal Draft",
+                        data=st.session_state.research_proposal,
+                        file_name="research_proposal_draft.txt",
+                        mime="text/plain"
+                    )
+        
+        else:
+            st.info("📤 Upload and analyze a paper first to access advanced research tools.")
+            st.markdown("""
+            ### 🛠️ Available Research Tools:
+            
+            **🔍 Related Paper Suggestions**
+            - Find similar research and key papers to explore
+            - Get search strategies and keywords
+            - Discover cross-disciplinary connections
+            
+            **❓ Research Question Generator** 
+            - Generate meaningful questions for future investigation
+            - Identify methodological improvements
+            - Explore broader implications
+            
+            **💡 Hypothesis Builder**
+            - Develop testable hypotheses from findings
+            - Suggest novel applications and extensions  
+            - Propose alternative explanations
+            
+            **📋 Research Proposal Assistant**
+            - Draft compelling research proposal outlines
+            - Structure objectives and methodology
+            - Align with grant application requirements
+            """)
+    
+    with tab4:
         st.header("About AI Research Paper Assistant")
         
         st.markdown("""
@@ -502,7 +606,11 @@ def main():
             "📊 Methodology Breakdown": "Detailed extraction and explanation of research methods and procedures",
             "🔗 Citation Network": "Automatic extraction of references and citation relationships",
             "🔍 Research Gap Identification": "AI identification of unexplored areas and future research directions",
-            "⚖️ Multi-Paper Comparison": "Side-by-side analysis and comparison of multiple research papers"
+            "⚖️ Multi-Paper Comparison": "Side-by-side analysis and comparison of multiple research papers",
+            "🔬 Related Paper Suggestions": "AI-powered discovery of similar research and strategic search guidance",
+            "❓ Research Question Generator": "Automatic generation of meaningful research questions for future investigation",
+            "💡 Hypothesis Builder": "Development of testable hypotheses and alternative explanations from findings",
+            "📋 Research Proposal Assistant": "AI-assisted drafting of compelling research proposal outlines and grant applications"
         }
         
         for feature, description in features_detail.items():
