@@ -526,10 +526,14 @@ def main():
         ---
         
         ### �🛠️ Technology Stack
-        - **Frontend**: Streamlit
-        - **AI Engine**: Google Gemini AI
-        - **PDF Processing**: PyMuPDF
-        - **Data Visualization**: Plotly & NetworkX
+        - **Frontend**: Streamlit web framework with sleek black theme
+        - **AI Engine**: Google Gemini AI (1.5/2.0 Flash models)
+        - **PDF Processing**: PyMuPDF (fitz) for text extraction
+        - **Data Visualization**: Plotly, Matplotlib, Seaborn, WordCloud
+        - **Data Analysis**: Pandas, NumPy for data manipulation
+        - **Report Generation**: ReportLab for PDF exports
+        - **Environment**: Python 3.13, python-dotenv for configuration
+        - **Optional APIs**: FastAPI, Uvicorn for REST capabilities
         
         ### 📞 Support
         For questions or issues, please check the documentation or contact support.
