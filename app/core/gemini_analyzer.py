@@ -32,10 +32,17 @@ class GeminiAnalyzer:
             model_name: Name of the Gemini model to use
         """
         self.model_name = model_name
-        self.api_key = os.getenv("GOOGLE_API_KEY")
+        
+        # Try to get API key from Streamlit secrets first, then environment
+        self.api_key = None
+        try:
+            import streamlit as st
+            self.api_key = st.secrets.get("GOOGLE_API_KEY")
+        except:
+            self.api_key = os.getenv("GOOGLE_API_KEY")
         
         if not self.api_key or self.api_key == "your_google_api_key_here":
-            raise ValueError("Please set GOOGLE_API_KEY in your .env file")
+            raise ValueError("Please set GOOGLE_API_KEY in Streamlit secrets or .env file")
         
         # Configure Gemini API
         genai.configure(api_key=self.api_key)

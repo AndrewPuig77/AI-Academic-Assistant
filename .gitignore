@@ -36,8 +36,8 @@ logs/
 temp/
 tmp/
 
-# Ignore Streamlit cache
-.streamlit/
+# Ignore Streamlit secrets (but allow config files)
+.streamlit/secrets.toml
 
 # Ignore output files
 outputs/

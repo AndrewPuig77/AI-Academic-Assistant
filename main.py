@@ -46,6 +46,32 @@ st.markdown("""
     footer {visibility: hidden;}
     header {visibility: hidden;}
     
+    /* Hide sidebar collapse button - keep sidebar always visible */
+    button[kind="header"] {
+        display: none !important;
+    }
+    
+    .css-1rs6os, .css-17ziqus, button[data-testid="collapsedControl"] {
+        display: none !important;
+    }
+    
+    /* Hide all sidebar toggle buttons */
+    .css-1544g2n {
+        display: none !important;
+    }
+    
+    /* Ensure sidebar stays expanded */
+    .css-1d391kg {
+        display: block !important;
+        visibility: visible !important;
+        width: 21rem !important;
+    }
+    
+    /* Hide any collapse arrows or buttons */
+    [data-testid="stSidebarNav"] button {
+        display: none !important;
+    }
+    
     /* Main header styling */
     .main-header {
         font-size: 3rem;
@@ -304,6 +330,59 @@ st.markdown("""
         animation: pulse 2s infinite;
     }
 </style>
+
+<script>
+    // Disable sidebar collapse functionality
+    function disableSidebarCollapse() {
+        // Hide all collapse buttons
+        const collapseButtons = document.querySelectorAll(
+            'button[kind="header"], ' +
+            '.css-1rs6os, ' +
+            '.css-17ziqus, ' +
+            'button[data-testid="collapsedControl"], ' +
+            '.css-1544g2n, ' +
+            '[data-testid="stSidebarNav"] button'
+        );
+        
+        collapseButtons.forEach(button => {
+            if (button) {
+                button.style.display = 'none';
+                button.style.visibility = 'hidden';
+                button.disabled = true;
+                // Remove all event listeners
+                button.onclick = null;
+                button.addEventListener = function() { return false; };
+            }
+        });
+        
+        // Ensure sidebar stays visible
+        const sidebar = document.querySelector('.css-1d391kg');
+        if (sidebar) {
+            sidebar.style.display = 'block';
+            sidebar.style.visibility = 'visible';
+            sidebar.style.width = '21rem';
+            sidebar.style.minWidth = '21rem';
+            sidebar.style.maxWidth = '21rem';
+        }
+        
+        // Prevent any collapse actions
+        const mainContent = document.querySelector('.css-18e3th9');
+        if (mainContent) {
+            mainContent.style.marginLeft = '21rem';
+        }
+    }
+    
+    // Run immediately and periodically
+    disableSidebarCollapse();
+    setInterval(disableSidebarCollapse, 500);
+    
+    // Run on page load and DOM changes
+    document.addEventListener('DOMContentLoaded', disableSidebarCollapse);
+    
+    // Observer for dynamic content
+    const observer = new MutationObserver(disableSidebarCollapse);
+    observer.observe(document.body, { childList: true, subtree: true });
+</script>
 """, unsafe_allow_html=True)
 
 def main():
@@ -311,29 +390,46 @@ def main():
     st.markdown('<h1 class="main-title">🎓 Academic AI Assistant</h1>', unsafe_allow_html=True)
     st.markdown('<p class="subtitle">Powered by Google Gemini AI • Research Analysis & Study Tools for Academic Success</p>', unsafe_allow_html=True)
     
-    # Sidebar for configuration
+    # Sidebar with features
     with st.sidebar:
-        st.header("🔧 Configuration")
-        
-        # API Key check
-        api_key = os.getenv("GOOGLE_API_KEY")
-        if not api_key or api_key == "your_google_api_key_here":
-            st.error("⚠️ Please set your Google API key in the .env file")
-            st.stop()
-        else:
-            st.success("✅ API Key configured")
-        
-        st.header("📋 Features")
+        st.header("🎯 AI Analysis Features")
         features = [
             "📄 Smart PDF Processing",
-            "🧠 Intelligent Analysis", 
-            "📊 Methodology Breakdown",
-            "🔗 Citation Network",
-            "🔍 Research Gap ID",
-            "⚖️ Multi-Paper Compare"
+            "🧠 Document Type Intelligence",
+            "📚 Educational Content Analysis", 
+            "🔬 Research Paper Analysis",
+            "📝 Study Material Processing",
+            "❓ Auto Study Questions",
+            "📇 Smart Flashcard Generation",
+            "🎯 Key Concepts Extraction",
+            "💡 Examples & Case Studies",
+            "📊 Difficulty Assessment",
+            "🏗️ Structure Analysis",
+            "💭 Argument Analysis",
+            "� Findings & Recommendations",
+            "� Research Gap Identification",
+            "� Future Research Directions",
+            "🏷️ Keyword & Term Extraction",
+            "📋 Comprehensive Reporting"
         ]
         for feature in features:
             st.markdown(f"- {feature}")
+        
+        st.markdown("---")
+        st.markdown("**💡 Pro Tip:** Select your document type for optimized analysis!")
+    
+    # API Key check (works with both .env and Streamlit secrets)
+    api_key = None
+    try:
+        # Try Streamlit secrets first (for cloud deployment)
+        api_key = st.secrets.get("GOOGLE_API_KEY")
+    except:
+        # Fall back to environment variable (for local development)
+        api_key = os.getenv("GOOGLE_API_KEY")
+    
+    if not api_key or api_key == "your_google_api_key_here":
+        st.error("⚠️ Please configure your Google API key in Streamlit secrets or .env file")
+        st.stop()
     
     # Main content area
     # Create main tabs
