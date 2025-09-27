@@ -1,0 +1,10 @@
+streamlit==1.50.0
+fastapi==0.117.1
+uvicorn==0.37.0
+PyMuPDF==1.26.4
+google-generativeai==0.8.5
+python-multipart==0.0.20
+plotly==6.3.0
+networkx==3.5
+python-dotenv==1.1.1
+pandas==2.3.2
