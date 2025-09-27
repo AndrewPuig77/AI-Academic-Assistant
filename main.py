@@ -15,6 +15,7 @@ load_dotenv()
 from app.core.pdf_processor import PDFProcessor
 from app.core.gemini_analyzer import GeminiAnalyzer
 from app.utils.helpers import format_analysis_results, create_download_link
+from app.utils.report_generator import AdvancedReportGenerator
 
 # Page configuration
 st.set_page_config(
@@ -208,7 +209,11 @@ def main():
             
             with col2:
                 if st.button("📊 Generate Report"):
-                    st.info("🚧 Advanced reporting coming soon!")
+                    # Initialize the advanced report generator
+                    report_generator = AdvancedReportGenerator()
+                    
+                    # Display the advanced interactive report
+                    report_generator.display_streamlit_report(results, paper_name)
         
         else:
             st.info("📤 Upload and analyze a paper first to see results here.")

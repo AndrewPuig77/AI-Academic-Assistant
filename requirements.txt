@@ -8,3 +8,8 @@ plotly==6.3.0
 networkx==3.5
 python-dotenv==1.1.1
 pandas==2.3.2
+matplotlib
+seaborn
+wordcloud
+reportlab
+kaleido
