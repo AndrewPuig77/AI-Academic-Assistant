@@ -596,6 +596,285 @@ class GeminiAnalyzer:
         except Exception as e:
             logger.error(f"Error generating research proposal: {str(e)}")
             return f"Error generating research proposal: {str(e)}"
+    
+    def generate_flashcards(self, content: str, num_cards: int = 15) -> str:
+        """
+        Generate educational flashcards from class material.
+        
+        Args:
+            content: The educational content text
+            num_cards: Number of flashcards to generate
+            
+        Returns:
+            JSON formatted flashcards with term/definition pairs
+        """
+        prompt = f"""
+        You are an educational content expert. Create {num_cards} high-quality flashcards from the following academic material.
+        
+        **FLASHCARD CREATION GUIDELINES:**
+        
+        **Content Focus:**
+        • Key definitions and terminology
+        • Important concepts and principles
+        • Formulas, equations, and relationships
+        • Historical figures, dates, and events
+        • Process steps and methodologies
+        • Cause-and-effect relationships
+        
+        **Format Requirements:**
+        • Front: Clear, concise question or term
+        • Back: Complete, accurate answer or definition
+        • Use active recall principles
+        • Vary question types (What is...?, How does...?, When did...?, Why does...?)
+        
+        **Quality Standards:**
+        • One concept per card
+        • No ambiguous questions
+        • Include context when needed
+        • Use precise academic language
+        • Test understanding, not memorization
+        
+        Return as JSON array with this exact format:
+        [
+            {{"front": "Question or term", "back": "Complete answer or definition"}},
+            {{"front": "Next question", "back": "Next answer"}}
+        ]
+        
+        ACADEMIC MATERIAL:
+        {content[:6000]}
+        """
+        
+        try:
+            response = self.model.generate_content(prompt, generation_config=self.generation_config)
+            return response.text
+        except Exception as e:
+            logger.error(f"Error generating flashcards: {str(e)}")
+            return f"Error generating flashcards: {str(e)}"
+    
+    def create_practice_questions(self, content: str, question_types: List[str] = None) -> str:
+        """
+        Generate practice questions from class material.
+        
+        Args:
+            content: The educational content text
+            question_types: List of question types to include
+            
+        Returns:
+            Structured practice questions
+        """
+        if question_types is None:
+            question_types = ["multiple_choice", "short_answer", "essay"]
+            
+        prompt = f"""
+        You are an expert educator creating comprehensive practice questions from academic material.
+        
+        **QUESTION TYPES TO CREATE:**
+        {', '.join(question_types)}
+        
+        **QUESTION GENERATION GUIDELINES:**
+        
+        **Multiple Choice (5 questions):**
+        • Test key concepts and definitions
+        • Include 4 options (A, B, C, D)
+        • Make distractors plausible but clearly incorrect
+        • Indicate correct answer
+        
+        **Short Answer (5 questions):**
+        • Require 2-3 sentence explanations
+        • Test understanding of processes and relationships
+        • Ask for examples or applications
+        • Include brief model answers
+        
+        **Essay Questions (3 questions):**
+        • Test higher-order thinking and analysis
+        • Require synthesis of multiple concepts
+        • Include evaluation or comparison tasks
+        • Provide key points for ideal answers
+        
+        **Quality Standards:**
+        • Align with learning objectives
+        • Various difficulty levels (basic, intermediate, advanced)
+        • Clear, unambiguous wording
+        • Test application, not just recall
+        • Include Bloom's taxonomy levels
+        
+        **FORMAT:**
+        ## MULTIPLE CHOICE QUESTIONS
+        
+        1. Question text
+        A) Option 1
+        B) Option 2  
+        C) Option 3
+        D) Option 4
+        **Answer: B**
+        
+        ## SHORT ANSWER QUESTIONS
+        
+        1. Question text
+        **Model Answer:** Brief explanation
+        
+        ## ESSAY QUESTIONS
+        
+        1. Question text
+        **Key Points:** Main concepts to address
+        
+        ACADEMIC MATERIAL:
+        {content[:6000]}
+        """
+        
+        try:
+            response = self.model.generate_content(prompt, generation_config=self.generation_config)
+            return response.text
+        except Exception as e:
+            logger.error(f"Error creating practice questions: {str(e)}")
+            return f"Error creating practice questions: {str(e)}"
+    
+    def build_study_guide(self, content: str, topic_name: str = "Academic Material") -> str:
+        """
+        Create a comprehensive study guide from class material.
+        
+        Args:
+            content: The educational content text
+            topic_name: Name/title of the academic topic
+            
+        Returns:
+            Formatted study guide
+        """
+        prompt = f"""
+        You are an expert academic tutor creating a comprehensive study guide for "{topic_name}".
+        
+        **STUDY GUIDE STRUCTURE:**
+        
+        **1. EXECUTIVE SUMMARY**
+        • Main topic overview (2-3 sentences)
+        • Key learning objectives
+        • Why this material matters
+        
+        **2. KEY CONCEPTS & DEFINITIONS**
+        • 10-15 most important terms with clear definitions
+        • Organize by subtopic if applicable
+        • Include memory aids or mnemonics where helpful
+        
+        **3. MAJOR THEMES & PRINCIPLES**
+        • Core ideas and theories
+        • Relationships between concepts
+        • Underlying principles
+        • Real-world applications
+        
+        **4. IMPORTANT DETAILS**
+        • Names, dates, figures (if applicable)
+        • Formulas, equations, processes
+        • Examples and case studies
+        • Common misconceptions to avoid
+        
+        **5. VISUAL LEARNING AIDS**
+        • Suggest diagrams, charts, or concept maps
+        • Hierarchical relationships
+        • Process flows or timelines
+        
+        **6. QUICK REVIEW CHECKLIST**
+        • "Can you explain...?" questions
+        • Key points for last-minute review
+        • Common exam focus areas
+        
+        **7. PRACTICE & APPLICATION**
+        • 3 sample problems or scenarios
+        • Critical thinking questions
+        • Connections to other course material
+        
+        **8. ADDITIONAL RESOURCES**
+        • Suggested supplementary readings
+        • Online resources or videos
+        • Study tips specific to this material
+        
+        **FORMATTING:**
+        • Use headers, bullet points, and numbered lists
+        • Make it scannable and organized
+        • Include page references if applicable
+        • Highlight critical information
+        
+        ACADEMIC MATERIAL:
+        {content[:6000]}
+        """
+        
+        try:
+            response = self.model.generate_content(prompt, generation_config=self.generation_config)
+            return response.text
+        except Exception as e:
+            logger.error(f"Error building study guide: {str(e)}")
+            return f"Error building study guide: {str(e)}"
+    
+    def analyze_class_material(self, content: str, material_type: str = "textbook") -> Dict[str, Any]:
+        """
+        Analyze class material for educational insights.
+        
+        Args:
+            content: The educational content text
+            material_type: Type of material (textbook, lecture, assignment, etc.)
+            
+        Returns:
+            Dictionary with educational analysis
+        """
+        prompt = f"""
+        You are an educational content analyzer. Analyze this {material_type} material and provide insights for effective studying.
+        
+        **ANALYSIS FRAMEWORK:**
+        
+        **1. CONTENT CLASSIFICATION**
+        • Subject area and level (introductory, intermediate, advanced)
+        • Main topics and subtopics covered
+        • Prerequisite knowledge assumed
+        
+        **2. LEARNING OBJECTIVES**
+        • What students should know after studying this
+        • Skills and competencies developed
+        • Assessment criteria implied
+        
+        **3. DIFFICULTY ASSESSMENT**
+        • Overall complexity level (1-10 scale)
+        • Most challenging concepts identified
+        • Areas requiring extra attention
+        
+        **4. STUDY RECOMMENDATIONS**
+        • Optimal study methods for this content type
+        • Time allocation suggestions
+        • Sequential vs. topic-based approach
+        
+        **5. KEY INSIGHTS**
+        • Most important takeaways
+        • Connections to broader subject
+        • Practical applications
+        
+        **6. POTENTIAL EXAM FOCUS**
+        • Likely test questions or problem types
+        • Concepts that commonly appear on exams
+        • Areas professors typically emphasize
+        
+        Provide analysis in clear, actionable format for student success.
+        
+        MATERIAL CONTENT:
+        {content[:5000]}
+        """
+        
+        try:
+            response = self.model.generate_content(prompt, generation_config=self.generation_config)
+            
+            # Return structured analysis
+            return {
+                'analysis': response.text,
+                'material_type': material_type,
+                'content_length': len(content),
+                'generated_at': time.strftime('%Y-%m-%d %H:%M:%S')
+            }
+            
+        except Exception as e:
+            logger.error(f"Error analyzing class material: {str(e)}")
+            return {
+                'analysis': f"Error analyzing class material: {str(e)}",
+                'material_type': material_type,
+                'content_length': len(content),
+                'generated_at': time.strftime('%Y-%m-%d %H:%M:%S')
+            }
 
 # Example usage and testing
 if __name__ == "__main__":
