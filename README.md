@@ -7,7 +7,7 @@
 
 Transform research papers AND class materials into actionable insights with cutting-edge AI analysis. Perfect for researchers, students, and academics who need comprehensive document analysis and study tools.
 
-![Academic AI Assistant Demo](https://via.placeholder.com/800x400/1f77b4/ffffff?text=Academic+AI+Assistant)
+![Academic AI Assistant Demo](https://ai-academic-assistant-jexdozjvqwapp4pqus6d8ld.streamlit.app/)
 
 ## ✨ Dual-Purpose Features
 
@@ -181,66 +181,12 @@ KEY CONCEPTS: Supervised vs Unsupervised Learning, Training/Validation Split...
 EXAM FOCUS: Likely to test algorithm selection and evaluation metrics...
 ```
 
-## 🏗️ Project Structure
-
-```
-academic-ai-assistant/
-├── 📁 app/
-│   ├── 🔧 core/
-│   │   ├── pdf_processor.py      # PDF text extraction & processing
-│   │   ├── gemini_analyzer.py    # Gemini AI integration with study tools
-│   │   └── __init__.py
-│   ├── 🛠️ utils/
-│   │   ├── helpers.py            # Utility functions
-│   │   ├── report_generator.py   # Advanced report generation
-│   │   └── __init__.py
-│   └── __init__.py
-├── 📁 uploads/                   # Temporary file storage  
-├── 🎨 main.py                   # Streamlit main application (5 tabs!)
-├── ⚙️ requirements.txt          # Python dependencies
-├── 🔧 .env.example              # Environment template
-└── 📖 README.md                 # This file
-```
-
-## 🚀 Roadmap
-
-### ✅ Current Features (v2.0)
-- ✅ Research Paper Analysis with AI Insights
-- ✅ Student Study Tools (Flashcards, Questions, Guides) 
-- ✅ Modern Black Theme Interface
-- ✅ Export Functionality for All Materials
-- ✅ Advanced AI Research Assistant Features
-
-### 🎯 Coming Soon (v2.1)
-- 🔄 Multi-Document Comparison
-- 📊 Visual Knowledge Graphs
-- 📱 Mobile-Responsive Design
-- 🌐 Multi-Language Support
 
 ##  License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
 
-- **🤖 Google Gemini** - For providing powerful FREE AI capabilities
-- **🎨 Streamlit** - For the amazing web framework
-- **📄 PyMuPDF** - For robust PDF processing
-- **🎓 Academic Community** - For inspiring this comprehensive tool
-
-## 📞 Support
-
-- 🐛 **Issues**: [GitHub Issues](https://github.com/AndrewPuig77/AI-Research-Paper-analyst/issues)
-- 💬 **Discussions**: Create discussions for feature requests
-- � **Contact**: Questions about implementation or customization
-
-## ⭐ Show Your Support
-
-If this project helped you with your research or studies:
-- ⭐ **Star** this repository
-- 🍴 **Fork** for your own modifications  
-- 📢 **Share** with fellow researchers and students
-- 💝 **Contribute** to make it even better
 
 ---
 
