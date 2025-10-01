@@ -132,18 +132,13 @@ Open your browser to **http://localhost:8501** and start analyzing! 🎉
 
 ### Core Technologies
 - **🐍 Python 3.11+** - Modern Python with advanced features
-- **🎨 Streamlit** - Beautiful, interactive web interface with modern black theme
-- **🤖 Google Gemini 2.5/2.0** - State-of-the-art AI for analysis (FREE tier: 1,500 requests/day!)
+- **🎨 Streamlit** - interactive web interface 
+- **🤖 Google Gemini/Groq -  AI for analysis
 - **📄 PyMuPDF** - Advanced PDF processing and text extraction
 - **� Plotly, Matplotlib, Seaborn** - Interactive visualizations and charts
 - **☁️ WordCloud** - Visual text analysis and keyword representation
-- **� ReportLab** - PDF export functionality
 
-### FREE Tier Benefits
-- **✨ Gemini 2.5 Flash**: 1,500 requests per day
-- **🧠 Gemini 2.0 Pro**: 100 requests per day
-- **� Analysis Capacity**: Analyze 250-500 documents daily!
-- **⏰ Reset**: Quota resets daily at midnight UTC
+
 
 ## 🎯 Demo Examples
 
