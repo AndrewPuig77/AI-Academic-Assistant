@@ -2,12 +2,13 @@
 
 [![Streamlit](https://img.shields.io/badge/Built%20with-Streamlit-FF6B6B)](https://streamlit.io/)
 [![Google Gemini](https://img.shields.io/badge/Powered%20by-Google%20Gemini-4285F4)](https://ai.google.dev/)
+[![Groq AI](https://img.shields.io/badge/Powered%20by-Groq%20AI-FF6B6B)](https://groq.com/)
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB)](https://python.org/)
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 Transform research papers AND class materials into actionable insights with cutting-edge AI analysis. Perfect for researchers, students, and academics who need comprehensive document analysis and study tools.
 
-**[Try the Live Demo](https://ai-academic-assistant-groq.streamlit.app/)**
+**[Try the Live Demo](https://ai-academic-assistant.streamlit.app/)**
 
 ## ✨ Dual-Purpose Features
 
