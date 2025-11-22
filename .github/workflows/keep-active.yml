@@ -1,18 +1,44 @@
 # .github/workflows/keep-alive.yml
 name: Keep Streamlit App Alive
-
 on:
   schedule:
-    # Runs once daily at 9:00 AM UTC (adjust timezone as needed)
-    - cron: '0 9 * * *'
-  workflow_dispatch: # Allows manual trigger from GitHub UI
+    - cron: '0 */12 * * *'  # Every 12 hours
+  workflow_dispatch:
 
 jobs:
   keep-alive:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Streamlit App
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      
+      - name: Install dependencies
         run: |
-          echo "Pinging Streamlit app..."
-          curl -I https://ai-academic-assistant.streamlit.app/
-          echo "Ping completed at $(date)"
+          pip install playwright
+          playwright install chromium
+      
+      - name: Visit Streamlit App
+        run: |
+          python - <<EOF
+          from playwright.sync_api import sync_playwright
+          import time
+
+          with sync_playwright() as p:
+              browser = p.chromium.launch()
+              page = browser.new_page()
+              
+              print("Loading Streamlit app...")
+              page.goto("https://ai-academic-assistant.streamlit.app/")
+              
+              # Wait for page to load
+              page.wait_for_timeout(10000)  # 10 seconds
+              
+              print(f"Page title: {page.title()}")
+              print("App visited successfully!")
+              
+              browser.close()
+          EOF
