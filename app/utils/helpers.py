@@ -104,7 +104,7 @@ def save_analysis_results(results: Dict[str, str], paper_name: str, output_dir: 
             "analysis_results": results,
             "metadata": {
                 "tool_version": "1.0.0",
-                "ai_model": "gemini-1.5-flash"
+                "ai_model": "gemini-flash-latest"
             }
         }
         
@@ -256,7 +256,7 @@ def create_analysis_metadata(paper_name: str, analysis_options: Dict[str, bool])
         'timestamp': datetime.now().isoformat(),
         'analysis_options': analysis_options,
         'tool_version': '1.0.0',
-        'ai_model': 'gemini-1.5-flash'
+        'ai_model': 'gemini-flash-latest'
     }
     
     return metadata

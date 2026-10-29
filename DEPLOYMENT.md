@@ -42,7 +42,7 @@ GOOGLE_API_KEY = "your_actual_api_key_here"
 APP_NAME = "AI Research Paper Assistant"
 DEBUG = false
 MAX_UPLOAD_SIZE = 10485760
-GEMINI_MODEL = "gemini-1.5-flash"
+GEMINI_MODEL = "gemini-flash-latest"
 GEMINI_TEMPERATURE = 0.1
 GEMINI_MAX_TOKENS = 8192
 ```
