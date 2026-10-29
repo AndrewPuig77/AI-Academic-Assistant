@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional
 
 import anthropic
 
-from . import ProviderAuthError, ProviderModelError, TextResponse
+from . import ProviderAuthError, ProviderConfigError, ProviderModelError, TextResponse
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +55,13 @@ class AnthropicProvider:
             raise ProviderAuthError("Anthropic rejected the API key. Check the key you entered.") from e
         except anthropic.NotFoundError as e:
             raise ProviderModelError(f"Claude model '{self.model}' was not found. Check the model name.") from e
+        except anthropic.BadRequestError as e:
+            if "credit balance" in str(e).lower():
+                raise ProviderConfigError(
+                    "Your Anthropic account has no API credits. Add credits under Billing at "
+                    "platform.claude.com, or switch provider in the sidebar."
+                ) from e
+            raise
 
         if response.stop_reason == "refusal":
             category = getattr(response.stop_details, "category", None) if response.stop_details else None
