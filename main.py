@@ -396,7 +396,7 @@ def render_provider_settings() -> dict:
     model = st.text_input(
         "Model",
         key=f"llm_model_{provider}",
-        placeholder=info["default_model"] or "e.g. llama-3.3-70b-versatile",
+        placeholder=info["default_model"] or "e.g. llama3.2",
         help="Leave blank to use the default shown." if info["default_model"] else "The model name on your server.",
     ).strip()
 

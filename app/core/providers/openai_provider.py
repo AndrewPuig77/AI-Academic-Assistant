@@ -47,7 +47,9 @@ class OpenAIProvider:
         except (openai.AuthenticationError, openai.PermissionDeniedError) as e:
             raise ProviderAuthError(f"{provider_name} rejected the API key. Check the key you entered.") from e
         except openai.NotFoundError as e:
-            raise ProviderModelError(f"Model '{self.model}' was not found. Check the model name.") from e
+            raise ProviderModelError(
+                f"Model '{self.model}' isn't available to your key. Check the model name, or leave the Model field blank to use the default."
+            ) from e
         except openai.APIConnectionError as e:
             if self.base_url:
                 raise ProviderConfigError(f"Could not connect to {self.base_url}. Check the base URL and that the server is running.") from e

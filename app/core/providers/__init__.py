@@ -53,7 +53,7 @@ PROVIDERS = {
     # Presets for free-tier OpenAI-compatible services, so users only need to paste a key
     "groq": {
         "label": "Groq (free tier)",
-        "default_model": "llama-3.3-70b-versatile",
+        "default_model": "openai/gpt-oss-120b",
         "key_env": "GROQ_API_KEY",
         "key_url": "https://console.groq.com/keys",
         "base_url": "https://api.groq.com/openai/v1",
