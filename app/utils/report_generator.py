@@ -152,7 +152,7 @@ class AdvancedReportGenerator:
             wordcloud = WordCloud(
                 width=800,
                 height=400,
-                background_color='white',
+                background_color='#111827',
                 max_words=100,
                 colormap='viridis',
                 relative_scaling=0.5
@@ -259,7 +259,7 @@ class AdvancedReportGenerator:
     
     def display_streamlit_report(self, results: Dict[str, str], paper_name: str):
         """Display the advanced report in Streamlit with progress tracking"""
-        st.header("📊 Advanced Analysis Report")
+        st.markdown("### Full report")
         st.markdown(f"**Paper:** {paper_name}")
         st.markdown(f"**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         
@@ -283,12 +283,12 @@ class AdvancedReportGenerator:
             report_status.text("📋 Processing section metrics...")
             report_progress.progress(70)
             
-            st.subheader("📈 Analysis Statistics")
+            st.markdown("#### Statistics")
             
             # Create metrics
             total_words = sum(stat['word_count'] for stat in report_data['statistics'].values())
             total_sentences = sum(stat['sentence_count'] for stat in report_data['statistics'].values())
-            sections_analyzed = len([k for k, v in results.items() if v and v.strip()])
+            sections_analyzed = len([k for k, v in results.items() if k != 'document_type' and v and v.strip()])
             
             col1, col2, col3, col4 = st.columns(4)
             with col1:
@@ -309,20 +309,20 @@ class AdvancedReportGenerator:
         charts = report_data.get('charts', {})
         
         if 'analysis_overview' in charts:
-            st.subheader("🎯 Analysis Overview")
+            st.markdown("#### Overview")
             st.plotly_chart(charts['analysis_overview'], use_container_width=True)
         
         if 'keyword_frequency' in charts:
-            st.subheader("🏷️ Keyword Frequency Analysis")
+            st.markdown("#### Keyword frequency")
             st.plotly_chart(charts['keyword_frequency'], use_container_width=True)
         
         if 'section_analysis' in charts:
-            st.subheader("📊 Section-wise Statistics")
+            st.markdown("#### Section statistics")
             st.plotly_chart(charts['section_analysis'], use_container_width=True)
         
         # Display word cloud
         if report_data.get('wordcloud'):
-            st.subheader("☁️ Word Cloud")
+            st.markdown("#### Word cloud")
             st.markdown("Visual representation of the most frequent terms in your analysis:")
             
             # Decode and display the word cloud
@@ -331,7 +331,7 @@ class AdvancedReportGenerator:
         
         # Detailed statistics table
         if report_data.get('statistics'):
-            st.subheader("📋 Detailed Section Statistics")
+            st.markdown("#### Detailed section statistics")
             
             stats_df = pd.DataFrame(report_data['statistics']).T
             stats_df = stats_df.round(2)
@@ -340,7 +340,7 @@ class AdvancedReportGenerator:
             st.dataframe(stats_df, use_container_width=True)
         
         # Export options
-        st.subheader("💾 Export Advanced Report")
+        st.markdown("#### Export")
         
         col1, col2 = st.columns(2)
         
@@ -354,7 +354,7 @@ class AdvancedReportGenerator:
                 'charts_data': {
                     'total_words': sum(stat['word_count'] for stat in report_data['statistics'].values()) if report_data.get('statistics') else 0,
                     'total_sentences': sum(stat['sentence_count'] for stat in report_data['statistics'].values()) if report_data.get('statistics') else 0,
-                    'sections_analyzed': len([k for k, v in results.items() if v and v.strip()]),
+                    'sections_analyzed': len([k for k, v in results.items() if k != 'document_type' and v and v.strip()]),
                     'sections_completed': list(report_data['statistics'].keys()) if report_data.get('statistics') else []
                 }
             }
@@ -362,7 +362,8 @@ class AdvancedReportGenerator:
             json_str = json.dumps(export_data, indent=2, ensure_ascii=False)
             
             st.download_button(
-                label="� Download Report Data (JSON)",
+                label="Download report data (JSON)",
+                icon=":material/data_object:",
                 data=json_str,
                 file_name=f"advanced_report_{paper_name.replace('.pdf', '').replace(' ', '_')}.json",
                 mime='application/json',
@@ -374,14 +375,16 @@ class AdvancedReportGenerator:
             text_report = self.create_comprehensive_text_report(results, paper_name, report_data)
             
             st.download_button(
-                label="� Download Full Report (TXT)",
+                label="Download full report (TXT)",
+                icon=":material/download:",
                 data=text_report,
                 file_name=f"comprehensive_report_{paper_name.replace('.pdf', '').replace(' ', '_')}.txt",
                 mime='text/plain',
                 help="Download a comprehensive text report with all analysis and statistics"
             )
         
-        st.success("✅ Advanced report generated successfully!")
+        report_progress.empty()
+        report_status.empty()
     
     def create_comprehensive_text_report(self, results: Dict[str, str], paper_name: str, report_data: Dict[str, Any]) -> str:
         """Create a comprehensive text report with all analysis and statistics"""
@@ -404,7 +407,7 @@ Generated: {timestamp}
         if report_data.get('statistics'):
             total_words = sum(stat['word_count'] for stat in report_data['statistics'].values())
             total_sentences = sum(stat['sentence_count'] for stat in report_data['statistics'].values())
-            sections_analyzed = len([k for k, v in results.items() if v and v.strip()])
+            sections_analyzed = len([k for k, v in results.items() if k != 'document_type' and v and v.strip()])
             avg_words_per_section = total_words // sections_analyzed if sections_analyzed > 0 else 0
             
             report += f"""
@@ -497,7 +500,7 @@ DETAILED SECTION STATISTICS:
 
 • Report Type: Advanced Interactive Analysis
 • AI Model Used: Google Gemini 2.0 Flash
-• Analysis Components: {len([k for k, v in results.items() if v and v.strip()])} sections
+• Analysis Components: {len([k for k, v in results.items() if k != 'document_type' and v and v.strip()])} sections
 • Generation Time: {timestamp}
 • Tool Version: AI Research Paper Assistant v2.0
 
