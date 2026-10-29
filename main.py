@@ -1,6 +1,7 @@
 """
 Academic AI Assistant - Main Streamlit Application
-A powerful tool for analyzing research papers and class materials using Google's Gemini AI
+A powerful tool for analyzing research papers and class materials with Google Gemini (default),
+OpenAI, Anthropic Claude, or any OpenAI-compatible model
 Supporting both research analysis and student study tools
 """
 
@@ -18,6 +19,7 @@ load_dotenv()
 
 from app.core.document_processor import DocumentProcessor
 from app.core.gemini_analyzer import GeminiAnalyzer
+from app.core.providers import PROVIDERS, get_builtin_key
 from app.utils.helpers import format_analysis_results, create_download_link
 from app.utils.report_generator import AdvancedReportGenerator
 
@@ -157,6 +159,10 @@ st.markdown("""
     .stButton > button[kind="primary"]:hover {
         background: #4f46e5;
         border-color: #4f46e5;
+    }
+    .stButton > button:disabled, .stButton > button[kind="primary"]:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
     }
 
     /* File uploader */
@@ -357,29 +363,96 @@ STUDY_TOOLS = [
 ]
 
 
-def render_sidebar(uploaded_file, has_document: bool):
-    """Render the sidebar. Called after the tabs so status reflects this run's upload/analysis."""
-    analyzed_name = st.session_state.get('paper_name', '')
+def provider_short_name(provider: str) -> str:
+    return PROVIDERS[provider]["label"].split(" (")[0]
 
+
+def render_provider_settings() -> dict:
+    """Sidebar controls for choosing the AI provider, model, and (optionally) the user's own key."""
+    label("AI provider")
+    provider = st.selectbox(
+        "AI provider",
+        list(PROVIDERS),
+        format_func=lambda p: PROVIDERS[p]["label"],
+        key="llm_provider",
+        label_visibility="collapsed",
+        help="Google Gemini is the default. OpenAI-compatible covers Groq, OpenRouter, Together, "
+             "and local servers like Ollama or LM Studio.",
+    )
+    info = PROVIDERS[provider]
+    builtin_key = get_builtin_key(provider)
+    is_compatible = provider == "openai_compatible"
+
+    base_url = ""
+    if is_compatible:
+        base_url = st.text_input(
+            "Base URL",
+            key="llm_base_url",
+            placeholder="https://api.groq.com/openai/v1",
+            help="Groq: https://api.groq.com/openai/v1 · OpenRouter: https://openrouter.ai/api/v1 · "
+                 "Ollama (local): http://localhost:11434/v1",
+        ).strip()
+
+    model = st.text_input(
+        "Model",
+        key=f"llm_model_{provider}",
+        placeholder=info["default_model"] or "e.g. llama-3.3-70b-versatile",
+        help="Leave blank to use the default shown." if info["default_model"] else "The model name on your server.",
+    ).strip()
+
+    api_key = st.text_input(
+        "API key",
+        type="password",
+        key=f"llm_key_{provider}",
+        placeholder="Using the app's built-in key" if builtin_key else ("Optional for local servers" if is_compatible else "Paste your API key"),
+        help="Your key is only kept for this browser session and is never saved.",
+    ).strip()
+
+    if is_compatible:
+        ready = bool(base_url and model)
+        hint = "Using your key for this session." if api_key else "Enter a base URL and model to get started."
+    else:
+        ready = bool(api_key or builtin_key)
+        if api_key:
+            hint = "Using your key for this session."
+        elif builtin_key:
+            hint = "Using the app's built-in key."
+        else:
+            hint = f"Add your {info['label']} API key to run analyses."
+    if ready:
+        st.caption(hint)
+    else:
+        st.warning(hint, icon=":material/key:")
+    if info["key_url"] and not builtin_key and not api_key:
+        st.markdown(f'<div class="sidebar-foot"><a href="{info["key_url"]}" target="_blank">Get a {info["label"]} key →</a></div>',
+                    unsafe_allow_html=True)
+
+    return {
+        "provider": provider,
+        "api_key": api_key or None,
+        "model": model or None,
+        "base_url": base_url or None,
+        "ready": ready,
+        "name": provider_short_name(provider),
+    }
+
+
+def make_analyzer(ai: dict) -> GeminiAnalyzer:
+    return GeminiAnalyzer(provider=ai["provider"], api_key=ai["api_key"], model_name=ai["model"], base_url=ai["base_url"])
+
+
+def render_sidebar() -> tuple:
+    """Render the sidebar. Returns the AI settings and a slot for the document status,
+    which is filled after the tabs so it reflects this run's upload/analysis."""
     with st.sidebar:
         st.markdown(
             '<div class="brand"><div class="logo">🎓</div><div class="name">Academic AI Assistant</div></div>',
             unsafe_allow_html=True
         )
+        status_slot = st.container()
 
-        if uploaded_file is not None and (not has_document or uploaded_file.name != analyzed_name):
-            status_class, status_text, caption = "ready", "Ready to analyze", uploaded_file.name
-        elif has_document:
-            status_class, status_text, caption = "ok", "Document analyzed", analyzed_name
-        else:
-            status_class, status_text, caption = "", "No document loaded", ""
-
-        st.markdown(
-            f'<div class="status-pill {status_class}"><span class="dot"></span>{status_text}</div>',
-            unsafe_allow_html=True
-        )
-        if caption:
-            st.caption(caption)
+        st.divider()
+        ai = render_provider_settings()
 
         st.divider()
         label("How it works")
@@ -394,10 +467,30 @@ def render_sidebar(uploaded_file, has_document: bool):
 
         st.divider()
         st.markdown(
-            '<div class="sidebar-foot">Selecting the right document type tailors the analysis to your material.'
-            '<br><br>Powered by Google Gemini</div>',
+            '<div class="sidebar-foot">Selecting the right document type tailors the analysis to your material.</div>',
             unsafe_allow_html=True
         )
+
+    return ai, status_slot
+
+
+def render_document_status(status_slot, uploaded_file, has_document: bool):
+    analyzed_name = st.session_state.get('paper_name', '')
+
+    if uploaded_file is not None and (not has_document or uploaded_file.name != analyzed_name):
+        status_class, status_text, caption = "ready", "Ready to analyze", uploaded_file.name
+    elif has_document:
+        status_class, status_text, caption = "ok", "Document analyzed", analyzed_name
+    else:
+        status_class, status_text, caption = "", "No document loaded", ""
+
+    with status_slot:
+        st.markdown(
+            f'<div class="status-pill {status_class}"><span class="dot"></span>{status_text}</div>',
+            unsafe_allow_html=True
+        )
+        if caption:
+            st.caption(caption)
 
 
 # Session keys produced by tools for a specific document; cleared when a new document is analyzed
@@ -413,29 +506,17 @@ def main():
     if st.session_state.pop('analysis_just_completed', False):
         st.toast("Analysis complete — open the Results tab", icon=":material/check_circle:")
 
+    ai, status_slot = render_sidebar()
+
     # Hero
-    st.markdown("""
+    st.markdown(f"""
     <div class="hero">
-        <div class="hero-eyebrow">Powered by Google Gemini</div>
+        <div class="hero-eyebrow">Powered by {html.escape(ai["name"])}</div>
         <h1>Academic AI Assistant</h1>
         <p>Turn research papers and course materials into structured analysis, research directions,
         and ready-to-use study resources.</p>
     </div>
     """, unsafe_allow_html=True)
-
-    # API Key check (works with both .env and Streamlit secrets)
-    api_key = None
-    try:
-        # Try Streamlit secrets first (for cloud deployment)
-        api_key = st.secrets.get("GOOGLE_API_KEY")
-    except:
-        # Fall back to environment variable (for local development)
-        api_key = os.getenv("GOOGLE_API_KEY")
-
-    if not api_key or api_key == "your_google_api_key_here":
-        render_sidebar(None, has_document)
-        st.error("Google API key not configured. Add `GOOGLE_API_KEY` to Streamlit secrets or your `.env` file.", icon=":material/key_off:")
-        st.stop()
 
     tab1, tab2, tab3, tab4, tab5 = st.tabs(["Upload & Analyze", "Results", "Research Tools", "Study Tools", "About"])
 
@@ -566,8 +647,11 @@ def main():
                     f"Analyze {type_label(document_type).split('/')[0].lower()}",
                     type="primary",
                     icon=":material/auto_awesome:",
-                    use_container_width=True
+                    use_container_width=True,
+                    disabled=not ai["ready"]
                 )
+                if not ai["ready"]:
+                    st.caption("Set up an AI provider in the sidebar to run the analysis.")
 
                 if analyze_clicked:
                     analysis_succeeded = False
@@ -575,7 +659,7 @@ def main():
                         try:
                             st.write("Initializing AI processors")
                             document_processor = DocumentProcessor()
-                            analyzer = GeminiAnalyzer()
+                            analyzer = make_analyzer(ai)
 
                             st.write("Saving uploaded file")
                             temp_path = f"uploads/{uploaded_file.name}"
@@ -607,7 +691,7 @@ def main():
                                 'future_work': include_future_work if 'include_future_work' in locals() else False
                             }
 
-                            st.write("Analyzing with Google Gemini — this may take a moment")
+                            st.write(f"Analyzing with {ai['name']} — this may take a moment")
                             analysis_results = analyzer.analyze_paper(extracted_text, analysis_options)
 
                             for key in DOCUMENT_OUTPUT_KEYS:
@@ -718,9 +802,12 @@ def main():
             cols = st.columns(4)
             for col, (key, button_label, icon, spinner_text, run, _, _) in zip(cols, tools):
                 with col:
-                    if st.button(button_label, icon=icon, use_container_width=True, key=f"btn_{key}"):
+                    if st.button(button_label, icon=icon, use_container_width=True, key=f"btn_{key}", disabled=not ai["ready"]):
                         with st.spinner(spinner_text):
-                            st.session_state[key] = run(GeminiAnalyzer(), st.session_state.analyzed_content)
+                            try:
+                                st.session_state[key] = run(make_analyzer(ai), st.session_state.analyzed_content)
+                            except Exception as e:
+                                st.error(str(e))
 
             generated = [t for t in tools if t[0] in st.session_state]
             if generated:
@@ -779,41 +866,41 @@ def main():
             col1, col2, col3, col4 = st.columns(4)
 
             with col1:
-                if st.button("Flashcards", icon=":material/style:", use_container_width=True):
+                if st.button("Flashcards", icon=":material/style:", use_container_width=True, disabled=not ai["ready"]):
                     with st.spinner("Creating flashcards…"):
                         try:
-                            st.session_state['study_flashcards'] = GeminiAnalyzer().generate_flashcards(analyzed_content)
+                            st.session_state['study_flashcards'] = make_analyzer(ai).generate_flashcards(analyzed_content)
                         except Exception as e:
                             st.error(f"Error generating flashcards: {str(e)}")
 
             with col2:
-                if st.button("Practice questions", icon=":material/quiz:", use_container_width=True):
+                if st.button("Practice questions", icon=":material/quiz:", use_container_width=True, disabled=not ai["ready"]):
                     if not question_types:
                         st.warning("Select at least one question type.")
                     else:
                         with st.spinner("Creating practice questions…"):
                             try:
-                                st.session_state['study_questions'] = GeminiAnalyzer().create_practice_questions(
+                                st.session_state['study_questions'] = make_analyzer(ai).create_practice_questions(
                                     analyzed_content, question_types
                                 )
                             except Exception as e:
                                 st.error(f"Error creating questions: {str(e)}")
 
             with col3:
-                if st.button("Study guide", icon=":material/menu_book:", use_container_width=True):
+                if st.button("Study guide", icon=":material/menu_book:", use_container_width=True, disabled=not ai["ready"]):
                     with st.spinner("Building study guide…"):
                         try:
-                            st.session_state['study_guide'] = GeminiAnalyzer().build_study_guide(
+                            st.session_state['study_guide'] = make_analyzer(ai).build_study_guide(
                                 analyzed_content, topic_name
                             )
                         except Exception as e:
                             st.error(f"Error building study guide: {str(e)}")
 
             with col4:
-                if st.button("Analyze material", icon=":material/analytics:", use_container_width=True):
+                if st.button("Analyze material", icon=":material/analytics:", use_container_width=True, disabled=not ai["ready"]):
                     with st.spinner("Analyzing class material…"):
                         try:
-                            st.session_state['material_analysis'] = GeminiAnalyzer().analyze_class_material(
+                            st.session_state['material_analysis'] = make_analyzer(ai).analyze_class_material(
                                 analyzed_content, material_type
                             )
                         except Exception as e:
@@ -977,12 +1064,12 @@ def main():
         label("Technology")
         card_grid([
             ("⚡", "Streamlit", "Interactive web interface."),
-            ("🤖", "Google Gemini", "Language model powering all analysis. The best available model is selected automatically."),
+            ("🤖", "Your choice of AI", "Google Gemini by default, or OpenAI, Anthropic Claude, or any OpenAI-compatible server (Groq, OpenRouter, Ollama) with your own key."),
             ("📑", "PyMuPDF & python-docx", "Document parsing and text extraction."),
             ("📈", "Plotly, Matplotlib, ReportLab", "Visualizations and report generation."),
         ])
 
-    render_sidebar(uploaded_file, has_document)
+    render_document_status(status_slot, uploaded_file, has_document)
 
 if __name__ == "__main__":
     main()
