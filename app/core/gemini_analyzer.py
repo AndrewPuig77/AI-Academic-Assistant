@@ -1,10 +1,10 @@
 """
-Gemini AI Analyzer Module
-Handles all interactions with Google's Gemini AI for research paper analysis
+AI Analyzer Module
+Builds the academic analysis prompts and sends them to the selected AI provider
+(Google Gemini by default; OpenAI, Anthropic Claude, or any OpenAI-compatible server).
 """
 
-from google import genai
-from google.genai import errors as genai_errors
+from app.core.providers import ProviderConfigError, create_provider, get_builtin_key, PROVIDERS
 import os
 import json
 import logging
@@ -19,128 +19,37 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-class GeminiAPIKeyError(Exception):
-    """Raised when Gemini rejects the configured API key."""
-
-
-class GeminiModel:
-    """
-    Thin wrapper around the google-genai client that keeps the
-    model.generate_content(prompt, generation_config=...) / response.text interface
-    used throughout GeminiAnalyzer, and falls back to another model when one is retired.
-    """
-
-    # Tried in order after any configured model; aliases keep working as Google releases new models
-    FALLBACK_MODELS = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-2.0-flash"]
-
-    # Model that last worked, shared across instances so later requests skip retired models
-    _resolved_model: Optional[str] = None
-
-    def __init__(self, api_key: str, preferred_model: Optional[str] = None):
-        self.client = genai.Client(api_key=api_key)
-        candidates = [preferred_model] if preferred_model else []
-        candidates += self.FALLBACK_MODELS
-        self.candidates = [m.removeprefix("models/") for m in dict.fromkeys(candidates)]
-
-    def _models_to_try(self) -> List[str]:
-        if GeminiModel._resolved_model:
-            return [GeminiModel._resolved_model]
-        return self.candidates
-
-    def _discover_flash_model(self) -> Optional[str]:
-        """Ask the API for any available Flash model when none of the known names work."""
-        try:
-            for model in self.client.models.list():
-                name = model.name.removeprefix("models/")
-                actions = getattr(model, "supported_actions", None) or []
-                if "flash" in name and "generateContent" in actions and name not in self.candidates:
-                    return name
-        except Exception as e:
-            logger.warning(f"Could not list Gemini models: {e}")
-        return None
-
-    def generate_content(self, prompt: str, generation_config: Optional[Dict[str, Any]] = None):
-        models = self._models_to_try()
-        last_error = None
-
-        for attempt_discovery in (False, True):
-            if attempt_discovery:
-                discovered = self._discover_flash_model()
-                if not discovered:
-                    break
-                models = [discovered]
-
-            for model in models:
-                try:
-                    response = self.client.models.generate_content(
-                        model=model, contents=prompt, config=generation_config
-                    )
-                    if GeminiModel._resolved_model != model:
-                        logger.info(f"Using Gemini model: {model}")
-                        GeminiModel._resolved_model = model
-                    return GeminiResponse(response)
-                except genai_errors.ClientError as e:
-                    message = str(e)
-                    if e.code in (401, 403) or "API_KEY_INVALID" in message or "API key not valid" in message:
-                        raise GeminiAPIKeyError(
-                            "Gemini rejected the API key. Check GOOGLE_API_KEY in your Streamlit secrets or .env file."
-                        ) from e
-                    if e.code == 404 or "not found" in message.lower() or "not supported" in message.lower():
-                        logger.warning(f"Gemini model {model} unavailable, trying next: {message[:200]}")
-                        if GeminiModel._resolved_model == model:
-                            GeminiModel._resolved_model = None
-                        last_error = e
-                        continue
-                    raise
-
-        raise Exception(f"No available Gemini model found. Last error: {last_error}")
-
-
-class GeminiResponse:
-    """Response wrapper whose .text is always a string, as the analyzer methods expect."""
-
-    def __init__(self, response):
-        self._response = response
-
-    @property
-    def text(self) -> str:
-        text = self._response.text
-        if text:
-            return text
-        finish_reason = None
-        try:
-            finish_reason = self._response.candidates[0].finish_reason
-        except (AttributeError, IndexError, TypeError):
-            pass
-        return f"⚠️ Gemini returned no text (finish reason: {finish_reason}). Try again or reduce the document size."
-
-
 class GeminiAnalyzer:
     """
-    Handles analysis of research papers using Google's Gemini AI.
+    Handles analysis of academic documents with the selected AI provider.
     Provides specialized prompts and analysis functions for academic content.
+    (Named for its original Gemini-only implementation; Gemini remains the default.)
     """
-    
-    def __init__(self, model_name: Optional[str] = None):
+
+    def __init__(self, provider: str = "gemini", api_key: Optional[str] = None,
+                 model_name: Optional[str] = None, base_url: Optional[str] = None):
         """
-        Initialize Gemini analyzer with API configuration.
+        Initialize the analyzer.
 
         Args:
-            model_name: Preferred Gemini model. Defaults to GEMINI_MODEL, then current Flash models.
+            provider: One of the keys in PROVIDERS. Defaults to Google Gemini.
+            api_key: The user's own key. Falls back to the host-configured key for the provider.
+            model_name: Model to use. Defaults to the provider's default (GEMINI_MODEL for Gemini).
+            base_url: Server URL, for OpenAI-compatible providers only.
         """
-        # Try to get API key from Streamlit secrets first, then environment
-        self.api_key = None
-        try:
-            import streamlit as st
-            self.api_key = st.secrets.get("GOOGLE_API_KEY")
-        except:
-            pass
-        self.api_key = self.api_key or os.getenv("GOOGLE_API_KEY")
+        if provider not in PROVIDERS:
+            raise ProviderConfigError(f"Unknown AI provider: {provider}")
 
-        if not self.api_key or self.api_key == "your_google_api_key_here":
-            raise ValueError("Please set GOOGLE_API_KEY in Streamlit secrets or .env file")
+        self.provider = provider
+        self.api_key = api_key or get_builtin_key(provider)
+        if not self.api_key and provider != "openai_compatible":
+            raise ProviderConfigError(
+                f"No API key for {PROVIDERS[provider]['label']}. Enter your key in the sidebar under AI provider."
+            )
 
-        self.model = GeminiModel(self.api_key, model_name or os.getenv("GEMINI_MODEL"))
+        if provider == "gemini":
+            model_name = model_name or os.getenv("GEMINI_MODEL")
+        self.model = create_provider(provider, self.api_key, model_name, base_url)
 
         # Generation configuration
         self.generation_config = {
@@ -172,8 +81,8 @@ class GeminiAnalyzer:
                 else:
                     return f"⚠️ No response generated for {operation_name}"
 
-            except GeminiAPIKeyError:
-                # Retrying can't fix a bad key; surface it immediately
+            except ProviderConfigError:
+                # Retrying can't fix a bad key, unknown model, or unreachable server; surface it immediately
                 raise
 
             except Exception as e:
@@ -191,7 +100,7 @@ class GeminiAnalyzer:
                         continue
                     else:
                         logger.error(f"❌ {operation_name} failed after {max_retries + 1} attempts")
-                        return f"⚠️ **API Quota Exceeded**\n\nThe Gemini API free tier has reached its daily limit (50 requests). This is normal for free accounts.\n\n**Solutions:**\n• Wait 24 hours for quota reset\n• Upgrade to paid API plan for higher limits\n• Try using fewer analysis options at once\n\n**Note:** Your document was processed successfully, but AI analysis is temporarily limited."
+                        return f"⚠️ **API Quota Exceeded**\n\nThe {PROVIDERS[self.provider]['label']} API has hit its rate or usage limit.\n\n**Solutions:**\n• Wait a while for the quota to reset\n• Use your own API key, or switch provider in the sidebar\n• Try using fewer analysis options at once\n\n**Note:** Your document was processed successfully, but AI analysis is temporarily limited."
                 
                 # Other errors (not quota related)
                 else:
