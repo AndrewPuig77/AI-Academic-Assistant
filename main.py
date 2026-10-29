@@ -32,8 +32,6 @@ st.set_page_config(
 # Global styles
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
     :root {
         --bg: #0b0f17;
         --surface: #111827;
@@ -48,14 +46,10 @@ st.markdown("""
         --radius: 12px;
     }
 
-    html, body, [class*="st-"], .stApp {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    }
-
     .stApp { background: var(--bg); }
 
     /* Streamlit chrome */
-    #MainMenu, footer, .stDeployButton, [data-testid="stDecoration"] { display: none !important; }
+    #MainMenu, footer, .stDeployButton, [data-testid="stAppDeployButton"], [data-testid="stDecoration"] { display: none !important; }
     [data-testid="stHeader"] { background: transparent; }
 
     .block-container {
@@ -298,6 +292,7 @@ st.markdown("""
     }
     .status-pill .dot { width: 0.5rem; height: 0.5rem; border-radius: 999px; background: #4b5563; }
     .status-pill.ok .dot { background: #22c55e; }
+    .status-pill.ready .dot { background: #f59e0b; }
     .sidebar-foot { color: var(--muted); font-size: 0.8rem; }
 
     /* Scrollbar */
@@ -362,26 +357,29 @@ STUDY_TOOLS = [
 ]
 
 
-def main():
-    has_document = bool(st.session_state.get('analyzed_content') and st.session_state.get('analysis_results'))
+def render_sidebar(uploaded_file, has_document: bool):
+    """Render the sidebar. Called after the tabs so status reflects this run's upload/analysis."""
+    analyzed_name = st.session_state.get('paper_name', '')
 
-    # Sidebar
     with st.sidebar:
         st.markdown(
             '<div class="brand"><div class="logo">🎓</div><div class="name">Academic AI Assistant</div></div>',
             unsafe_allow_html=True
         )
-        if has_document:
-            st.markdown(
-                f'<div class="status-pill ok"><span class="dot"></span>Document loaded</div>',
-                unsafe_allow_html=True
-            )
-            st.caption(st.session_state.get('paper_name', ''))
+
+        if uploaded_file is not None and (not has_document or uploaded_file.name != analyzed_name):
+            status_class, status_text, caption = "ready", "Ready to analyze", uploaded_file.name
+        elif has_document:
+            status_class, status_text, caption = "ok", "Document analyzed", analyzed_name
         else:
-            st.markdown(
-                '<div class="status-pill"><span class="dot"></span>No document loaded</div>',
-                unsafe_allow_html=True
-            )
+            status_class, status_text, caption = "", "No document loaded", ""
+
+        st.markdown(
+            f'<div class="status-pill {status_class}"><span class="dot"></span>{status_text}</div>',
+            unsafe_allow_html=True
+        )
+        if caption:
+            st.caption(caption)
 
         st.divider()
         label("How it works")
@@ -400,6 +398,20 @@ def main():
             '<br><br>Powered by Google Gemini</div>',
             unsafe_allow_html=True
         )
+
+
+# Session keys produced by tools for a specific document; cleared when a new document is analyzed
+DOCUMENT_OUTPUT_KEYS = [
+    'related_papers', 'research_questions', 'hypotheses', 'research_proposal',
+    'study_flashcards', 'study_questions', 'study_guide', 'material_analysis', 'show_report',
+]
+
+
+def main():
+    has_document = bool(st.session_state.get('analyzed_content') and st.session_state.get('analysis_results'))
+
+    if st.session_state.pop('analysis_just_completed', False):
+        st.toast("Analysis complete — open the Results tab", icon=":material/check_circle:")
 
     # Hero
     st.markdown("""
@@ -421,10 +433,12 @@ def main():
         api_key = os.getenv("GOOGLE_API_KEY")
 
     if not api_key or api_key == "your_google_api_key_here":
+        render_sidebar(None, has_document)
         st.error("Google API key not configured. Add `GOOGLE_API_KEY` to Streamlit secrets or your `.env` file.", icon=":material/key_off:")
         st.stop()
 
     tab1, tab2, tab3, tab4, tab5 = st.tabs(["Upload & Analyze", "Results", "Research Tools", "Study Tools", "About"])
+
 
     with tab1:
         section_title("Upload a document", "Supported formats: PDF, DOCX, and TXT up to 10 MB.")
@@ -556,6 +570,7 @@ def main():
                 )
 
                 if analyze_clicked:
+                    analysis_succeeded = False
                     with st.status("Analyzing document…", expanded=True) as status:
                         try:
                             st.write("Initializing AI processors")
@@ -595,16 +610,24 @@ def main():
                             st.write("Analyzing with Google Gemini — this may take a moment")
                             analysis_results = analyzer.analyze_paper(extracted_text, analysis_options)
 
+                            for key in DOCUMENT_OUTPUT_KEYS:
+                                st.session_state.pop(key, None)
                             st.session_state['analysis_results'] = analysis_results
                             st.session_state['analyzed_content'] = extracted_text
                             st.session_state['paper_name'] = uploaded_file.name
 
                             os.remove(temp_path)
                             status.update(label="Analysis complete — open the Results tab", state="complete", expanded=False)
+                            analysis_succeeded = True
 
                         except Exception as e:
                             status.update(label="Analysis failed", state="error", expanded=True)
                             st.error(f"Error during analysis: {str(e)}")
+
+                    # Rerun so the sidebar and the other tabs pick up the new document
+                    if analysis_succeeded:
+                        st.session_state['analysis_just_completed'] = True
+                        st.rerun()
 
     with tab2:
         if 'analysis_results' in st.session_state:
@@ -660,9 +683,16 @@ def main():
                     use_container_width=True
                 )
             with col2:
-                generate_report = st.button("Generate full report", icon=":material/analytics:", use_container_width=True)
+                if st.session_state.get('show_report'):
+                    if st.button("Hide full report", icon=":material/visibility_off:", use_container_width=True):
+                        st.session_state['show_report'] = False
+                        st.rerun()
+                elif st.button("Generate full report", icon=":material/analytics:", use_container_width=True):
+                    st.session_state['show_report'] = True
+                    st.rerun()
 
-            if generate_report:
+            # Kept in session state so the report survives the rerun triggered by its download buttons
+            if st.session_state.get('show_report'):
                 report_generator = AdvancedReportGenerator()
                 report_generator.display_streamlit_report(results, document_name)
 
@@ -951,6 +981,8 @@ def main():
             ("📑", "PyMuPDF & python-docx", "Document parsing and text extraction."),
             ("📈", "Plotly, Matplotlib, ReportLab", "Visualizations and report generation."),
         ])
+
+    render_sidebar(uploaded_file, has_document)
 
 if __name__ == "__main__":
     main()
