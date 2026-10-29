@@ -5,7 +5,7 @@
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-An AI-powered web application that turns research papers and course materials into structured analysis and study resources. Upload a document and receive executive summaries, methodology reviews, citation analysis, flashcards, practice questions, and study guides — all generated with Google Gemini.
+An AI-powered web application that turns research papers and course materials into structured analysis and study resources. Upload a document and receive executive summaries, methodology reviews, citation analysis, flashcards, practice questions, and study guides — generated with Google Gemini by default, or with OpenAI, Anthropic Claude, or any OpenAI-compatible model using your own API key.
 
 **[Live Demo →](https://ai-academic-assistant-o6pz88nwe9q4zspiioe3nc.streamlit.app/)**
 
@@ -15,6 +15,7 @@ An AI-powered web application that turns research papers and course materials in
 
 - [Features](#features)
 - [Getting Started](#getting-started)
+- [AI Providers](#ai-providers)
 - [Configuration](#configuration)
 - [Usage](#usage)
 - [Project Structure](#project-structure)
@@ -59,7 +60,7 @@ An AI-powered web application that turns research papers and course materials in
 ### Prerequisites
 
 - Python 3.10 or later
-- A Google Gemini API key — [create one in Google AI Studio](https://aistudio.google.com/app/apikey) (free tier available)
+- A Google Gemini API key — [create one in Google AI Studio](https://aistudio.google.com/app/apikey) (free tier available). Optional if users will bring their own key for another provider.
 
 ### Installation
 
@@ -93,9 +94,24 @@ Windows users can alternatively run `run_app.bat`.
 
 ---
 
+## AI Providers
+
+Choose the AI provider in the app's sidebar. Gemini is the default.
+
+| Provider | Default model | Key |
+| --- | --- | --- |
+| Google Gemini | `gemini-flash-latest` (falls back automatically if a model is retired) | Built-in `GOOGLE_API_KEY`, or the user's own |
+| OpenAI | `gpt-5-mini` | User's own, or built-in `OPENAI_API_KEY` |
+| Anthropic Claude | `claude-opus-5-5` | User's own, or built-in `ANTHROPIC_API_KEY` |
+| OpenAI-compatible | Any model on the server | Optional — for Groq, OpenRouter, Together, Ollama, LM Studio, and similar |
+
+Users can override the model name in the sidebar. Keys entered in the app are kept only for the browser session and are never saved. If a user leaves the key blank, the app uses the host's built-in key for that provider when one is configured.
+
+---
+
 ## Configuration
 
-Settings are read from a `.env` file in the project root. At minimum, set your API key:
+Settings are read from a `.env` file in the project root (or Streamlit secrets when deployed). Set the built-in Gemini key:
 
 ```env
 GOOGLE_API_KEY=your_api_key_here
@@ -103,7 +119,10 @@ GOOGLE_API_KEY=your_api_key_here
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `GOOGLE_API_KEY` | — | **Required.** Google Gemini API key |
+| `GOOGLE_API_KEY` | — | Built-in Google Gemini key for the default provider |
+| `OPENAI_API_KEY` | — | Optional built-in OpenAI key |
+| `ANTHROPIC_API_KEY` | — | Optional built-in Anthropic key |
+| `GEMINI_MODEL` | `gemini-flash-latest` | Preferred Gemini model |
 | `GEMINI_TEMPERATURE` | `0.1` | Sampling temperature for generated output |
 | `GEMINI_MAX_TOKENS` | `8192` | Maximum tokens per response |
 
@@ -164,7 +183,8 @@ AI-Academic-Assistant/
 │   ├── core/
 │   │   ├── document_processor.py   # PDF / DOCX / TXT ingestion
 │   │   ├── pdf_processor.py        # PDF text extraction (PyMuPDF)
-│   │   └── gemini_analyzer.py      # Gemini prompts and analysis logic
+│   │   ├── gemini_analyzer.py      # Analysis prompts and logic (all providers)
+│   │   └── providers/              # Gemini, OpenAI, Claude, and OpenAI-compatible adapters
 │   └── utils/
 │       ├── helpers.py              # Shared utilities
 │       └── report_generator.py     # Report building and export
@@ -181,7 +201,7 @@ AI-Academic-Assistant/
 | Layer | Tools |
 | --- | --- |
 | Interface | [Streamlit](https://streamlit.io/) |
-| AI Model | [Google Gemini](https://ai.google.dev/) via `google-generativeai` |
+| AI Models | [Google Gemini](https://ai.google.dev/) (`google-genai`), [OpenAI](https://platform.openai.com/) (`openai`), [Anthropic Claude](https://platform.claude.com/) (`anthropic`) |
 | Document Processing | PyMuPDF, python-docx, chardet |
 | Visualization | Plotly, Matplotlib, Seaborn, NetworkX, WordCloud |
 | Reporting | ReportLab, pandas |
