@@ -8,7 +8,8 @@ from app.core.providers import ProviderConfigError, create_provider, get_builtin
 import os
 import json
 import logging
-from typing import Dict, List, Optional, Any
+from typing import Any, Callable, Dict, List, Optional
+import re
 from dotenv import load_dotenv
 import time
 
@@ -18,6 +19,10 @@ load_dotenv()
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+class QuotaExhaustedError(Exception):
+    """The provider's rate limit or quota is exhausted; further calls in this run would fail too."""
+
 
 class GeminiAnalyzer:
     """
@@ -59,27 +64,21 @@ class GeminiAnalyzer:
             'top_k': 40
         }
     
-    def _make_api_call_with_retry(self, prompt: str, max_retries: int = 5, operation_name: str = "API call") -> str:
+    def _make_api_call_with_retry(self, prompt: str, max_retries: int = 3, operation_name: str = "API call") -> str:
         """
-        Make API call with intelligent retry logic for quota errors.
-        
-        Args:
-            prompt: The prompt to send to the model
-            max_retries: Maximum number of retries (default 5)
-            operation_name: Name of the operation for logging
-            
-        Returns:
-            Generated text response
+        Make an API call, waiting out short rate limits and failing fast on exhausted quotas.
+
+        Raises:
+            ProviderConfigError: bad key, unknown model, or unreachable server.
+            QuotaExhaustedError: the provider's quota is used up, so further calls would also fail.
         """
+        label = PROVIDERS[self.provider]['label']
         for attempt in range(max_retries + 1):
             try:
                 response = self.model.generate_content(prompt, generation_config=self.generation_config)
                 if response and response.text:
-                    if attempt > 0:
-                        logger.info(f"✅ {operation_name} succeeded on attempt {attempt + 1}")
                     return response.text
-                else:
-                    return f"⚠️ No response generated for {operation_name}"
+                return f"⚠️ No response generated for {operation_name}"
 
             except ProviderConfigError:
                 # Retrying can't fix a bad key, unknown model, or unreachable server; surface it immediately
@@ -87,140 +86,87 @@ class GeminiAnalyzer:
 
             except Exception as e:
                 error_msg = str(e)
-                
-                # Check for quota/rate limit errors (429 status)
-                if ("429" in error_msg or "quota" in error_msg.lower() or 
-                    "rate limit" in error_msg.lower() or "exceeded" in error_msg.lower()):
-                    
+                lowered = error_msg.lower()
+
+                if any(marker in lowered for marker in ("429", "quota", "rate limit", "rate_limit", "resource_exhausted")):
+                    # Daily or billing quotas won't reset by waiting a few seconds
+                    if any(marker in lowered for marker in ("perday", "per day", "insufficient_quota", "billing")):
+                        raise QuotaExhaustedError(
+                            f"{label} quota is used up for today. Use your own API key or switch provider in the sidebar."
+                        ) from e
                     if attempt < max_retries:
-                        # Progressive backoff: 2, 5, 10, 20, 40 seconds
-                        wait_time = min(2 ** (attempt + 1), 40)
-                        logger.warning(f"🔄 {operation_name} - Quota exceeded, attempt {attempt + 1}/{max_retries + 1}. Retrying in {wait_time}s...")
+                        wait_time = min(self._suggested_retry_delay(error_msg) or 5 * 2 ** attempt, 60)
+                        logger.warning(f"{operation_name}: rate limited, retrying in {wait_time:.0f}s ({attempt + 1}/{max_retries})")
                         time.sleep(wait_time)
                         continue
-                    else:
-                        logger.error(f"❌ {operation_name} failed after {max_retries + 1} attempts")
-                        return f"⚠️ **API Quota Exceeded**\n\nThe {PROVIDERS[self.provider]['label']} API has hit its rate or usage limit.\n\n**Solutions:**\n• Wait a while for the quota to reset\n• Use your own API key, or switch provider in the sidebar\n• Try using fewer analysis options at once\n\n**Note:** Your document was processed successfully, but AI analysis is temporarily limited."
-                
-                # Other errors (not quota related)
-                else:
-                    if attempt < max_retries:
-                        wait_time = 2 * (attempt + 1)  # Simple backoff for other errors
-                        logger.warning(f"🔄 {operation_name} error (attempt {attempt + 1}/{max_retries + 1}): {error_msg}. Retrying in {wait_time}s...")
-                        time.sleep(wait_time)
-                        continue
-                    else:
-                        logger.error(f"❌ {operation_name} failed: {error_msg}")
-                        return f"❌ **Error in {operation_name}**\n\n{error_msg}\n\nPlease try again or contact support if the issue persists."
-        
-        return f"❌ Failed to complete {operation_name} after {max_retries + 1} attempts"
-    
-    def analyze_paper(self, paper_text: str, analysis_options: Dict[str, bool]) -> Dict[str, str]:
+                    raise QuotaExhaustedError(
+                        f"{label} is rate limiting requests. Wait a minute and try again with fewer analysis sections, "
+                        "or use your own API key."
+                    ) from e
+
+                # Other errors: one quick retry for transient network/server hiccups
+                if attempt < 1:
+                    logger.warning(f"{operation_name} error, retrying: {error_msg}")
+                    time.sleep(2)
+                    continue
+                logger.error(f"{operation_name} failed: {error_msg}")
+                return f"❌ **Error in {operation_name}**\n\n{error_msg}"
+
+        return f"❌ Failed to complete {operation_name}"
+
+    @staticmethod
+    def _suggested_retry_delay(error_msg: str) -> Optional[float]:
+        """Read the wait time a provider suggests in its rate-limit error, if any."""
+        match = (re.search(r"retry in ([\d.]+)\s*s", error_msg, re.IGNORECASE)
+                 or re.search(r"retryDelay['\"]?\s*:\s*['\"](\d+(?:\.\d+)?)s", error_msg))
+        return float(match.group(1)) + 1 if match else None
+
+    def analyze_paper(self, paper_text: str, analysis_options: Dict[str, bool],
+                      progress: Optional[Callable[[str, int, int], None]] = None) -> Dict[str, str]:
         """
         Comprehensive analysis of academic content.
-        
+
         Args:
             paper_text: Extracted text from the document
             analysis_options: Dictionary specifying which analyses to perform
-            
+            progress: Optional callback(section_label, step_number, total_steps), called before each section
+
         Returns:
             Dictionary containing analysis results
         """
-        results = {}
         document_type = analysis_options.get('document_type', '📖 Other Academic Material')
-        
-        # Store document type in results for later use
-        results['document_type'] = document_type
-        
-        try:
-            # Generate summary if requested
-            if analysis_options.get('summary', False):
-                results['summary'] = self.generate_summary(paper_text, document_type)
-                time.sleep(1)  # Rate limiting
-            
-            # Research paper specific analyses
-            if analysis_options.get('methodology', False):
-                results['methodology'] = self.analyze_methodology(paper_text)
-                time.sleep(1)
-            
-            if analysis_options.get('gaps', False):
-                results['gaps'] = self.identify_research_gaps(paper_text)
-                time.sleep(1)
-                
-            if analysis_options.get('future_work', False):
-                results['future_work'] = self.suggest_future_research(paper_text)
-                time.sleep(1)
-            
-            # Study material specific analyses
-            if analysis_options.get('concepts', False):
-                results['concepts'] = self.extract_key_concepts(paper_text, document_type)
-                time.sleep(1)
-                
-            if analysis_options.get('examples', False):
-                results['examples'] = self.extract_examples_cases(paper_text, document_type)
-                time.sleep(1)
-                
-            if analysis_options.get('questions', False):
-                results['questions'] = self.generate_study_questions(paper_text, document_type)
-                time.sleep(1)
-                
-            if analysis_options.get('difficulty', False):
-                results['difficulty'] = self.assess_difficulty(paper_text, document_type)
-                time.sleep(1)
-            
-            # Assignment/Essay specific analyses
-            if analysis_options.get('structure', False):
-                results['structure'] = self.analyze_structure(paper_text, document_type)
-                time.sleep(1)
-                
-            if analysis_options.get('arguments', False):
-                results['arguments'] = self.analyze_arguments(paper_text, document_type)
-                time.sleep(1)
-                
-            if analysis_options.get('improvements', False):
-                results['improvements'] = self.suggest_improvements(paper_text, document_type)
-                time.sleep(1)
-            
-            # Report/Guide specific analyses
-            if analysis_options.get('findings', False):
-                results['findings'] = self.extract_findings(paper_text, document_type)
-                time.sleep(1)
-                
-            if analysis_options.get('recommendations', False):
-                results['recommendations'] = self.extract_recommendations(paper_text, document_type)
-                time.sleep(1)
-            
-            # General analyses
-            if analysis_options.get('main_points', False):
-                results['main_points'] = self.extract_main_points(paper_text, document_type)
-                time.sleep(1)
-                
-            if analysis_options.get('context', False):
-                results['context'] = self.analyze_context(paper_text, document_type)
-                time.sleep(1)
-            
-            # Extract citations/references if requested
-            if analysis_options.get('citations', False):
-                results['citations'] = self.extract_citations(paper_text, document_type)
-                time.sleep(1)
-            
-            # Extract keywords if requested
-            if analysis_options.get('keywords', False):
-                results['keywords'] = self.extract_keywords(paper_text, document_type)
-                time.sleep(1)
-            
-            # Detailed analysis if requested
-            if analysis_options.get('detailed', False):
-                results['detailed'] = self.detailed_analysis(paper_text, document_type)
-                time.sleep(1)
-            
-            logger.info(f"Analysis completed with {len(results)} components")
-            return results
-            
-        except Exception as e:
-            logger.error(f"Error during document analysis: {str(e)}")
-            raise Exception(f"Analysis failed: {str(e)}")
-    
+        results = {'document_type': document_type}
+
+        steps = [
+            ('summary', 'Summary', lambda: self.generate_summary(paper_text, document_type)),
+            ('methodology', 'Methodology', lambda: self.analyze_methodology(paper_text)),
+            ('gaps', 'Research gaps', lambda: self.identify_research_gaps(paper_text)),
+            ('future_work', 'Future directions', lambda: self.suggest_future_research(paper_text)),
+            ('concepts', 'Key concepts', lambda: self.extract_key_concepts(paper_text, document_type)),
+            ('examples', 'Examples & cases', lambda: self.extract_examples_cases(paper_text, document_type)),
+            ('questions', 'Study questions', lambda: self.generate_study_questions(paper_text, document_type)),
+            ('difficulty', 'Difficulty level', lambda: self.assess_difficulty(paper_text, document_type)),
+            ('structure', 'Structure', lambda: self.analyze_structure(paper_text, document_type)),
+            ('arguments', 'Key arguments', lambda: self.analyze_arguments(paper_text, document_type)),
+            ('improvements', 'Improvement suggestions', lambda: self.suggest_improvements(paper_text, document_type)),
+            ('findings', 'Key findings', lambda: self.extract_findings(paper_text, document_type)),
+            ('recommendations', 'Recommendations', lambda: self.extract_recommendations(paper_text, document_type)),
+            ('main_points', 'Main points', lambda: self.extract_main_points(paper_text, document_type)),
+            ('context', 'Context', lambda: self.analyze_context(paper_text, document_type)),
+            ('citations', 'References', lambda: self.extract_citations(paper_text, document_type)),
+            ('keywords', 'Keywords', lambda: self.extract_keywords(paper_text, document_type)),
+            ('detailed', 'Detailed analysis', lambda: self.detailed_analysis(paper_text, document_type)),
+        ]
+        selected = [step for step in steps if analysis_options.get(step[0], False)]
+
+        for number, (key, label, run) in enumerate(selected, start=1):
+            if progress:
+                progress(label, number, len(selected))
+            results[key] = run()
+
+        logger.info(f"Analysis completed with {len(results)} components")
+        return results
+
     def generate_summary(self, paper_text: str, document_type: str = "🔬 Research Paper") -> str:
         """Generate an intelligent summary based on document type."""
         
@@ -317,7 +263,7 @@ class GeminiAnalyzer:
             {paper_text[:4000]}
             """
         
-        return self._make_api_call_with_retry(prompt, max_retries=5, operation_name="summary generation")
+        return self._make_api_call_with_retry(prompt, operation_name="summary generation")
     
     def analyze_methodology(self, paper_text: str) -> str:
         """Analyze the research methodology in detail."""
@@ -342,7 +288,7 @@ class GeminiAnalyzer:
         {paper_text[:4000]}
         """
         
-        return self._make_api_call_with_retry(prompt, max_retries=5, operation_name="methodology analysis")
+        return self._make_api_call_with_retry(prompt, operation_name="methodology analysis")
     
     def identify_research_gaps(self, paper_text: str) -> str:
         """Identify research gaps and future directions."""
@@ -366,12 +312,7 @@ class GeminiAnalyzer:
         {paper_text[:4000]}
         """
         
-        try:
-            response = self.model.generate_content(prompt, generation_config=self.generation_config)
-            return response.text
-        except Exception as e:
-            logger.error(f"Error identifying research gaps: {str(e)}")
-            return f"Error identifying research gaps: {str(e)}"
+        return self._make_api_call_with_retry(prompt, operation_name="identifying research gaps")
     
     def detailed_analysis(self, paper_text: str, document_type: str = "🔬 Research Paper") -> str:
         """Provide comprehensive detailed analysis based on document type."""
@@ -454,12 +395,7 @@ class GeminiAnalyzer:
             {paper_text[:4000]}
             """
         
-        try:
-            response = self.model.generate_content(prompt, generation_config=self.generation_config)
-            return response.text
-        except Exception as e:
-            logger.error(f"Error in detailed analysis: {str(e)}")
-            return f"Error in detailed analysis: {str(e)}"
+        return self._make_api_call_with_retry(prompt, operation_name="in detailed analysis")
     
     def compare_papers(self, papers_data: List[Dict[str, str]]) -> str:
         """Compare multiple research papers."""
@@ -479,12 +415,7 @@ class GeminiAnalyzer:
         Papers to compare: {len(papers_data)} papers provided.
         """
         
-        try:
-            response = self.model.generate_content(prompt, generation_config=self.generation_config)
-            return response.text
-        except Exception as e:
-            logger.error(f"Error comparing papers: {str(e)}")
-            return f"Error comparing papers: {str(e)}"
+        return self._make_api_call_with_retry(prompt, operation_name="comparing papers")
     
     def suggest_related_papers(self, paper_text: str) -> str:
         """Generate suggestions for related papers and research areas."""
@@ -526,12 +457,7 @@ class GeminiAnalyzer:
         {paper_text[:4000]}
         """
         
-        try:
-            response = self.model.generate_content(prompt, generation_config=self.generation_config)
-            return response.text
-        except Exception as e:
-            logger.error(f"Error generating related paper suggestions: {str(e)}")
-            return f"Error generating related paper suggestions: {str(e)}"
+        return self._make_api_call_with_retry(prompt, operation_name="generating related paper suggestions")
     
     def generate_research_questions(self, paper_text: str) -> str:
         """Generate potential research questions based on the paper content."""
@@ -577,12 +503,7 @@ class GeminiAnalyzer:
         {paper_text[:4000]}
         """
         
-        try:
-            response = self.model.generate_content(prompt, generation_config=self.generation_config)
-            return response.text
-        except Exception as e:
-            logger.error(f"Error generating research questions: {str(e)}")
-            return f"Error generating research questions: {str(e)}"
+        return self._make_api_call_with_retry(prompt, operation_name="generating research questions")
     
     def build_hypotheses(self, paper_text: str) -> str:
         """Generate new hypotheses based on the paper's findings and gaps."""
@@ -628,12 +549,7 @@ class GeminiAnalyzer:
         {paper_text[:4000]}
         """
         
-        try:
-            response = self.model.generate_content(prompt, generation_config=self.generation_config)
-            return response.text
-        except Exception as e:
-            logger.error(f"Error building hypotheses: {str(e)}")
-            return f"Error building hypotheses: {str(e)}"
+        return self._make_api_call_with_retry(prompt, operation_name="building hypotheses")
     
     def generate_research_proposal(self, paper_text: str) -> str:
         """Generate a research proposal based on the paper's findings and gaps."""
@@ -692,12 +608,7 @@ class GeminiAnalyzer:
         {paper_text[:4000]}
         """
         
-        try:
-            response = self.model.generate_content(prompt, generation_config=self.generation_config)
-            return response.text
-        except Exception as e:
-            logger.error(f"Error generating research proposal: {str(e)}")
-            return f"Error generating research proposal: {str(e)}"
+        return self._make_api_call_with_retry(prompt, operation_name="generating research proposal")
     
     def generate_flashcards(self, content: str, num_cards: int = 15) -> str:
         """
@@ -746,12 +657,7 @@ class GeminiAnalyzer:
         {content[:6000]}
         """
         
-        try:
-            response = self.model.generate_content(prompt, generation_config=self.generation_config)
-            return response.text
-        except Exception as e:
-            logger.error(f"Error generating flashcards: {str(e)}")
-            return f"Error generating flashcards: {str(e)}"
+        return self._make_api_call_with_retry(prompt, operation_name="generating flashcards")
     
     def create_practice_questions(self, content: str, question_types: List[str] = None) -> str:
         """
@@ -824,12 +730,7 @@ class GeminiAnalyzer:
         {content[:6000]}
         """
         
-        try:
-            response = self.model.generate_content(prompt, generation_config=self.generation_config)
-            return response.text
-        except Exception as e:
-            logger.error(f"Error creating practice questions: {str(e)}")
-            return f"Error creating practice questions: {str(e)}"
+        return self._make_api_call_with_retry(prompt, operation_name="creating practice questions")
     
     def build_study_guide(self, content: str, topic_name: str = "Academic Material") -> str:
         """
@@ -899,12 +800,7 @@ class GeminiAnalyzer:
         {content[:6000]}
         """
         
-        try:
-            response = self.model.generate_content(prompt, generation_config=self.generation_config)
-            return response.text
-        except Exception as e:
-            logger.error(f"Error building study guide: {str(e)}")
-            return f"Error building study guide: {str(e)}"
+        return self._make_api_call_with_retry(prompt, operation_name="building study guide")
     
     def analyze_class_material(self, content: str, material_type: str = "textbook") -> Dict[str, Any]:
         """
@@ -959,11 +855,11 @@ class GeminiAnalyzer:
         """
         
         try:
-            response = self.model.generate_content(prompt, generation_config=self.generation_config)
+            analysis = self._make_api_call_with_retry(prompt, operation_name="class material analysis")
             
             # Return structured analysis
             return {
-                'analysis': response.text,
+                'analysis': analysis,
                 'material_type': material_type,
                 'content_length': len(content),
                 'generated_at': time.strftime('%Y-%m-%d %H:%M:%S')
@@ -996,7 +892,7 @@ class GeminiAnalyzer:
         CONTENT: {content[:4000]}
         """
         
-        return self._make_api_call_with_retry(prompt, max_retries=5, operation_name="key concepts extraction")
+        return self._make_api_call_with_retry(prompt, operation_name="key concepts extraction")
 
     def extract_examples_cases(self, content: str, document_type: str) -> str:
         """Extract examples and case studies."""
@@ -1014,11 +910,7 @@ class GeminiAnalyzer:
 
         CONTENT: {content[:4000]}
         """
-        try:
-            response = self.model.generate_content(prompt, generation_config=self.generation_config)
-            return response.text
-        except Exception as e:
-            return f"Error extracting examples: {str(e)}"
+        return self._make_api_call_with_retry(prompt, operation_name="extracting examples")
 
     def generate_study_questions(self, content: str, document_type: str) -> str:
         """Generate study questions from content."""
@@ -1037,7 +929,7 @@ class GeminiAnalyzer:
         CONTENT: {content[:4000]}
         """
         
-        return self._make_api_call_with_retry(prompt, max_retries=5, operation_name="study questions generation")
+        return self._make_api_call_with_retry(prompt, operation_name="study questions generation")
 
     def assess_difficulty(self, content: str, document_type: str) -> str:
         """Assess the difficulty level of content."""
@@ -1055,11 +947,7 @@ class GeminiAnalyzer:
 
         CONTENT: {content[:4000]}
         """
-        try:
-            response = self.model.generate_content(prompt, generation_config=self.generation_config)
-            return response.text
-        except Exception as e:
-            return f"Error assessing difficulty: {str(e)}"
+        return self._make_api_call_with_retry(prompt, operation_name="assessing difficulty")
 
     def analyze_structure(self, content: str, document_type: str) -> str:
         """Analyze document structure."""
@@ -1077,11 +965,7 @@ class GeminiAnalyzer:
 
         CONTENT: {content[:4000]}
         """
-        try:
-            response = self.model.generate_content(prompt, generation_config=self.generation_config)
-            return response.text
-        except Exception as e:
-            return f"Error analyzing structure: {str(e)}"
+        return self._make_api_call_with_retry(prompt, operation_name="analyzing structure")
 
     def analyze_arguments(self, content: str, document_type: str) -> str:
         """Analyze key arguments presented."""
@@ -1099,11 +983,7 @@ class GeminiAnalyzer:
 
         CONTENT: {content[:4000]}
         """
-        try:
-            response = self.model.generate_content(prompt, generation_config=self.generation_config)
-            return response.text
-        except Exception as e:
-            return f"Error analyzing arguments: {str(e)}"
+        return self._make_api_call_with_retry(prompt, operation_name="analyzing arguments")
 
     def suggest_improvements(self, content: str, document_type: str) -> str:
         """Suggest improvements for academic work."""
@@ -1121,11 +1001,7 @@ class GeminiAnalyzer:
 
         CONTENT: {content[:4000]}
         """
-        try:
-            response = self.model.generate_content(prompt, generation_config=self.generation_config)
-            return response.text
-        except Exception as e:
-            return f"Error suggesting improvements: {str(e)}"
+        return self._make_api_call_with_retry(prompt, operation_name="suggesting improvements")
 
     def extract_findings(self, content: str, document_type: str) -> str:
         """Extract key findings from reports/documents."""
@@ -1143,11 +1019,7 @@ class GeminiAnalyzer:
 
         CONTENT: {content[:4000]}
         """
-        try:
-            response = self.model.generate_content(prompt, generation_config=self.generation_config)
-            return response.text
-        except Exception as e:
-            return f"Error extracting findings: {str(e)}"
+        return self._make_api_call_with_retry(prompt, operation_name="extracting findings")
 
     def extract_recommendations(self, content: str, document_type: str) -> str:
         """Extract recommendations from documents."""
@@ -1165,11 +1037,7 @@ class GeminiAnalyzer:
 
         CONTENT: {content[:4000]}
         """
-        try:
-            response = self.model.generate_content(prompt, generation_config=self.generation_config)
-            return response.text
-        except Exception as e:
-            return f"Error extracting recommendations: {str(e)}"
+        return self._make_api_call_with_retry(prompt, operation_name="extracting recommendations")
 
     def extract_main_points(self, content: str, document_type: str) -> str:
         """Extract main points from any academic content."""
@@ -1187,11 +1055,7 @@ class GeminiAnalyzer:
 
         CONTENT: {content[:4000]}
         """
-        try:
-            response = self.model.generate_content(prompt, generation_config=self.generation_config)
-            return response.text
-        except Exception as e:
-            return f"Error extracting main points: {str(e)}"
+        return self._make_api_call_with_retry(prompt, operation_name="extracting main points")
 
     def analyze_context(self, content: str, document_type: str) -> str:
         """Analyze the context and background."""
@@ -1209,11 +1073,7 @@ class GeminiAnalyzer:
 
         CONTENT: {content[:4000]}
         """
-        try:
-            response = self.model.generate_content(prompt, generation_config=self.generation_config)
-            return response.text
-        except Exception as e:
-            return f"Error analyzing context: {str(e)}"
+        return self._make_api_call_with_retry(prompt, operation_name="analyzing context")
 
     def suggest_future_research(self, content: str) -> str:
         """Suggest future research directions."""
@@ -1231,11 +1091,7 @@ class GeminiAnalyzer:
 
         CONTENT: {content[:4000]}
         """
-        try:
-            response = self.model.generate_content(prompt, generation_config=self.generation_config)
-            return response.text
-        except Exception as e:
-            return f"Error suggesting future research: {str(e)}"
+        return self._make_api_call_with_retry(prompt, operation_name="suggesting future research")
 
     def extract_citations(self, content: str, document_type: str = "🔬 Research Paper") -> str:
         """Extract citations and references based on document type."""
@@ -1268,11 +1124,7 @@ class GeminiAnalyzer:
         
         prompt += f"\n\nCONTENT: {content[:4000]}"
         
-        try:
-            response = self.model.generate_content(prompt, generation_config=self.generation_config)
-            return response.text
-        except Exception as e:
-            return f"Error extracting references: {str(e)}"
+        return self._make_api_call_with_retry(prompt, operation_name="extracting references")
 
     def extract_keywords(self, content: str, document_type: str = "🔬 Research Paper") -> str:
         """Extract keywords and key terms based on document type."""
@@ -1305,11 +1157,7 @@ class GeminiAnalyzer:
         
         prompt += f"\n\nCONTENT: {content[:4000]}"
         
-        try:
-            response = self.model.generate_content(prompt, generation_config=self.generation_config)
-            return response.text
-        except Exception as e:
-            return f"Error extracting keywords: {str(e)}"
+        return self._make_api_call_with_retry(prompt, operation_name="extracting keywords")
 
 # Example usage and testing
 if __name__ == "__main__":

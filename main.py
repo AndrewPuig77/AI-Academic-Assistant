@@ -691,8 +691,15 @@ def main():
                                 'future_work': include_future_work if 'include_future_work' in locals() else False
                             }
 
-                            st.write(f"Analyzing with {ai['name']} — this may take a moment")
-                            analysis_results = analyzer.analyze_paper(extracted_text, analysis_options)
+                            st.write(f"Analyzing with {ai['name']}")
+                            progress_bar = st.progress(0.0)
+
+                            def show_progress(section: str, step: int, total: int):
+                                status.update(label=f"Analyzing: {section} ({step} of {total})")
+                                progress_bar.progress((step - 1) / total, text=f"{section} — section {step} of {total}")
+
+                            analysis_results = analyzer.analyze_paper(extracted_text, analysis_options, progress=show_progress)
+                            progress_bar.progress(1.0, text="All sections done")
 
                             for key in DOCUMENT_OUTPUT_KEYS:
                                 st.session_state.pop(key, None)

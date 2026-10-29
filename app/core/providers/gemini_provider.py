@@ -5,10 +5,13 @@ from typing import Any, Dict, List, Optional
 
 from google import genai
 from google.genai import errors as genai_errors
+from google.genai import types as genai_types
 
 from . import ProviderAuthError
 
 logger = logging.getLogger(__name__)
+
+REQUEST_TIMEOUT_MS = 120_000
 
 
 class GeminiProvider:
@@ -25,7 +28,8 @@ class GeminiProvider:
     _resolved_model: Optional[str] = None
 
     def __init__(self, api_key: str, preferred_model: Optional[str] = None):
-        self.client = genai.Client(api_key=api_key)
+        # Timeout is in milliseconds; without one a stalled request can hang the analysis indefinitely
+        self.client = genai.Client(api_key=api_key, http_options=genai_types.HttpOptions(timeout=REQUEST_TIMEOUT_MS))
         candidates = [preferred_model] if preferred_model else []
         candidates += self.FALLBACK_MODELS
         self.candidates = [m.removeprefix("models/") for m in dict.fromkeys(candidates)]

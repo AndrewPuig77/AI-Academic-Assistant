@@ -12,10 +12,16 @@ logger = logging.getLogger(__name__)
 # Reasoning models spend part of the completion budget on hidden reasoning
 OPENAI_MAX_COMPLETION_TOKENS = 16000
 
+# Seconds per request; local models on modest hardware get longer
+REQUEST_TIMEOUT = 180.0
+COMPATIBLE_REQUEST_TIMEOUT = 300.0
+
 
 class OpenAIProvider:
     def __init__(self, api_key: str, model: str, base_url: Optional[str] = None):
-        self.client = openai.OpenAI(api_key=api_key, base_url=base_url)
+        timeout = COMPATIBLE_REQUEST_TIMEOUT if base_url else REQUEST_TIMEOUT
+        # Rate-limit retries are handled by the analyzer, so the SDK retries only once
+        self.client = openai.OpenAI(api_key=api_key, base_url=base_url, timeout=timeout, max_retries=1)
         self.model = model
         self.base_url = base_url
 

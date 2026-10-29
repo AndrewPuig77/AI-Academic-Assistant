@@ -21,10 +21,14 @@ EFFORT_MODELS = SERVER_FALLBACK_MODELS | {
 # Non-streaming requests stay comfortably under SDK HTTP timeouts at this size
 MAX_TOKENS = 16000
 
+# Seconds per request
+REQUEST_TIMEOUT = 300.0
+
 
 class AnthropicProvider:
     def __init__(self, api_key: str, model: str):
-        self.client = anthropic.Anthropic(api_key=api_key)
+        # Rate-limit retries are handled by the analyzer, so the SDK retries only once
+        self.client = anthropic.Anthropic(api_key=api_key, timeout=REQUEST_TIMEOUT, max_retries=1)
         self.model = model
 
     def generate_content(self, prompt: str, generation_config: Optional[Dict[str, Any]] = None) -> TextResponse:
