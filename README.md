@@ -7,7 +7,7 @@
 
 An AI-powered web application that turns research papers and course materials into structured analysis and study resources. Upload a document and receive executive summaries, methodology reviews, citation analysis, flashcards, practice questions, and study guides — all generated with Google Gemini.
 
-**[Live Demo →](https://ai-academic-assistant.streamlit.app/)**
+**[Live Demo →](https://ai-academic-assistant-o6pz88nwe9q4zspiioe3nc.streamlit.app/)**
 
 ---
 
