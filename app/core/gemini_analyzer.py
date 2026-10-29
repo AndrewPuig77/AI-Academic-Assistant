@@ -90,7 +90,7 @@ class GeminiAnalyzer:
 
                 if any(marker in lowered for marker in ("429", "quota", "rate limit", "rate_limit", "resource_exhausted")):
                     # Daily or billing quotas won't reset by waiting a few seconds
-                    if any(marker in lowered for marker in ("perday", "per day", "insufficient_quota", "billing")):
+                    if any(marker in lowered for marker in ("perday", "per day", "(tpd)", "(rpd)", "insufficient_quota")):
                         raise QuotaExhaustedError(
                             f"{label} quota is used up for today. Use your own API key or switch provider in the sidebar."
                         ) from e
@@ -117,8 +117,10 @@ class GeminiAnalyzer:
     @staticmethod
     def _suggested_retry_delay(error_msg: str) -> Optional[float]:
         """Read the wait time a provider suggests in its rate-limit error, if any."""
-        match = (re.search(r"retry in ([\d.]+)\s*s", error_msg, re.IGNORECASE)
-                 or re.search(r"retryDelay['\"]?\s*:\s*['\"](\d+(?:\.\d+)?)s", error_msg))
+        match = re.search(r"(?:retry|try again) in (?:(\d+)m)?([\d.]+)\s*s", error_msg, re.IGNORECASE)
+        if match:
+            return int(match.group(1) or 0) * 60 + float(match.group(2)) + 1
+        match = re.search(r"retryDelay['\"]?\s*:\s*['\"](\d+(?:\.\d+)?)s", error_msg)
         return float(match.group(1)) + 1 if match else None
 
     def analyze_paper(self, paper_text: str, analysis_options: Dict[str, bool],

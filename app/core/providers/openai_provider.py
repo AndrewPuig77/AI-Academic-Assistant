@@ -18,8 +18,11 @@ COMPATIBLE_REQUEST_TIMEOUT = 300.0
 
 
 class OpenAIProvider:
-    def __init__(self, api_key: str, model: str, base_url: Optional[str] = None, server_name: Optional[str] = None):
+    def __init__(self, api_key: str, model: str, base_url: Optional[str] = None, server_name: Optional[str] = None,
+                 max_output_tokens: Optional[int] = None):
         self.server_name = server_name
+        # Cap for free tiers whose per-minute token budget counts the requested max_tokens
+        self.max_output_tokens = max_output_tokens
         timeout = COMPATIBLE_REQUEST_TIMEOUT if base_url else REQUEST_TIMEOUT
         # Rate-limit retries are handled by the analyzer, so the SDK retries only once
         self.client = openai.OpenAI(api_key=api_key, base_url=base_url, timeout=timeout, max_retries=1)
@@ -34,9 +37,15 @@ class OpenAIProvider:
         }
         if self.base_url:
             # Compatible servers widely support the classic parameters
-            params["max_tokens"] = config.get("max_output_tokens", 8192)
+            max_tokens = config.get("max_output_tokens", 8192)
+            if self.max_output_tokens:
+                max_tokens = min(max_tokens, self.max_output_tokens)
+            params["max_tokens"] = max_tokens
             if "temperature" in config:
                 params["temperature"] = config["temperature"]
+            if self.model.startswith("openai/gpt-oss"):
+                # Keep hidden reasoning short so the answer fits in the capped budget
+                params["reasoning_effort"] = "low"
         else:
             # Current OpenAI models take max_completion_tokens and only the default temperature
             params["max_completion_tokens"] = max(config.get("max_output_tokens", 0), OPENAI_MAX_COMPLETION_TOKENS)

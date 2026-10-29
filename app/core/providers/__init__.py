@@ -57,6 +57,8 @@ PROVIDERS = {
         "key_env": "GROQ_API_KEY",
         "key_url": "https://console.groq.com/keys",
         "base_url": "https://api.groq.com/openai/v1",
+        # The free tier allows ~8K tokens per minute, and the requested max_tokens counts toward it
+        "max_output_tokens": 3000,
     },
     "openrouter": {
         "label": "OpenRouter (free models)",
@@ -65,6 +67,7 @@ PROVIDERS = {
         "key_env": "OPENROUTER_API_KEY",
         "key_url": "https://openrouter.ai/settings/keys",
         "base_url": "https://openrouter.ai/api/v1",
+        "max_output_tokens": 4000,
     },
     "openai_compatible": {
         "label": "OpenAI-compatible",
@@ -104,7 +107,8 @@ def create_provider(provider: str, api_key: Optional[str], model: Optional[str],
         from .openai_provider import OpenAIProvider
         info = PROVIDERS[provider]
         return OpenAIProvider(api_key, model or info["default_model"], base_url=info["base_url"],
-                              server_name=info["label"].split(" (")[0])
+                              server_name=info["label"].split(" (")[0],
+                              max_output_tokens=info.get("max_output_tokens"))
     if provider == "openai_compatible":
         from .openai_provider import OpenAIProvider
         if not base_url:
