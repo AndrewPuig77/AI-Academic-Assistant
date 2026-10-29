@@ -3,7 +3,8 @@ Gemini AI Analyzer Module
 Handles all interactions with Google's Gemini AI for research paper analysis
 """
 
-import google.generativeai as genai
+from google import genai
+from google.genai import errors as genai_errors
 import os
 import json
 import logging
@@ -18,98 +19,129 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+class GeminiAPIKeyError(Exception):
+    """Raised when Gemini rejects the configured API key."""
+
+
+class GeminiModel:
+    """
+    Thin wrapper around the google-genai client that keeps the
+    model.generate_content(prompt, generation_config=...) / response.text interface
+    used throughout GeminiAnalyzer, and falls back to another model when one is retired.
+    """
+
+    # Tried in order after any configured model; aliases keep working as Google releases new models
+    FALLBACK_MODELS = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-2.0-flash"]
+
+    # Model that last worked, shared across instances so later requests skip retired models
+    _resolved_model: Optional[str] = None
+
+    def __init__(self, api_key: str, preferred_model: Optional[str] = None):
+        self.client = genai.Client(api_key=api_key)
+        candidates = [preferred_model] if preferred_model else []
+        candidates += self.FALLBACK_MODELS
+        self.candidates = [m.removeprefix("models/") for m in dict.fromkeys(candidates)]
+
+    def _models_to_try(self) -> List[str]:
+        if GeminiModel._resolved_model:
+            return [GeminiModel._resolved_model]
+        return self.candidates
+
+    def _discover_flash_model(self) -> Optional[str]:
+        """Ask the API for any available Flash model when none of the known names work."""
+        try:
+            for model in self.client.models.list():
+                name = model.name.removeprefix("models/")
+                actions = getattr(model, "supported_actions", None) or []
+                if "flash" in name and "generateContent" in actions and name not in self.candidates:
+                    return name
+        except Exception as e:
+            logger.warning(f"Could not list Gemini models: {e}")
+        return None
+
+    def generate_content(self, prompt: str, generation_config: Optional[Dict[str, Any]] = None):
+        models = self._models_to_try()
+        last_error = None
+
+        for attempt_discovery in (False, True):
+            if attempt_discovery:
+                discovered = self._discover_flash_model()
+                if not discovered:
+                    break
+                models = [discovered]
+
+            for model in models:
+                try:
+                    response = self.client.models.generate_content(
+                        model=model, contents=prompt, config=generation_config
+                    )
+                    if GeminiModel._resolved_model != model:
+                        logger.info(f"Using Gemini model: {model}")
+                        GeminiModel._resolved_model = model
+                    return GeminiResponse(response)
+                except genai_errors.ClientError as e:
+                    message = str(e)
+                    if e.code in (401, 403) or "API_KEY_INVALID" in message or "API key not valid" in message:
+                        raise GeminiAPIKeyError(
+                            "Gemini rejected the API key. Check GOOGLE_API_KEY in your Streamlit secrets or .env file."
+                        ) from e
+                    if e.code == 404 or "not found" in message.lower() or "not supported" in message.lower():
+                        logger.warning(f"Gemini model {model} unavailable, trying next: {message[:200]}")
+                        if GeminiModel._resolved_model == model:
+                            GeminiModel._resolved_model = None
+                        last_error = e
+                        continue
+                    raise
+
+        raise Exception(f"No available Gemini model found. Last error: {last_error}")
+
+
+class GeminiResponse:
+    """Response wrapper whose .text is always a string, as the analyzer methods expect."""
+
+    def __init__(self, response):
+        self._response = response
+
+    @property
+    def text(self) -> str:
+        text = self._response.text
+        if text:
+            return text
+        finish_reason = None
+        try:
+            finish_reason = self._response.candidates[0].finish_reason
+        except (AttributeError, IndexError, TypeError):
+            pass
+        return f"⚠️ Gemini returned no text (finish reason: {finish_reason}). Try again or reduce the document size."
+
+
 class GeminiAnalyzer:
     """
     Handles analysis of research papers using Google's Gemini AI.
     Provides specialized prompts and analysis functions for academic content.
     """
     
-    def __init__(self, model_name: str = "gemini-1.5-flash"):
+    def __init__(self, model_name: Optional[str] = None):
         """
         Initialize Gemini analyzer with API configuration.
-        
+
         Args:
-            model_name: Name of the Gemini model to use
+            model_name: Preferred Gemini model. Defaults to GEMINI_MODEL, then current Flash models.
         """
-        self.model_name = model_name
-        
         # Try to get API key from Streamlit secrets first, then environment
         self.api_key = None
         try:
             import streamlit as st
             self.api_key = st.secrets.get("GOOGLE_API_KEY")
         except:
-            self.api_key = os.getenv("GOOGLE_API_KEY")
-        
+            pass
+        self.api_key = self.api_key or os.getenv("GOOGLE_API_KEY")
+
         if not self.api_key or self.api_key == "your_google_api_key_here":
             raise ValueError("Please set GOOGLE_API_KEY in Streamlit secrets or .env file")
-        
-        # Configure Gemini API
-        genai.configure(api_key=self.api_key)
-        
-        # List available models to debug
-        try:
-            available_models = []
-            for model in genai.list_models():
-                if 'generateContent' in model.supported_generation_methods:
-                    available_models.append(model.name)
-            logger.info(f"Available models: {available_models}")
-            
-            # Use the first available Gemini model if the specified one doesn't work
-            if available_models:
-                # Try to find a flash model first
-                flash_models = [m for m in available_models if 'flash' in m.lower()]
-                if flash_models:
-                    actual_model = flash_models[0]
-                else:
-                    actual_model = available_models[0]
-                logger.info(f"Using model: {actual_model}")
-            else:
-                actual_model = model_name
-                
-        except Exception as e:
-            logger.warning(f"Could not list models: {e}, using default: {model_name}")
-            actual_model = model_name
-        
-        # Initialize model - use exact model name from API
-        try:
-            # Use models that are confirmed to be available based on the list_models output
-            working_models = [
-                "models/gemini-1.5-flash-latest",
-                "models/gemini-2.0-flash-exp",
-                "models/gemini-2.5-flash",
-                "models/gemini-2.0-flash",
-                "models/gemini-1.5-flash-8b-latest",
-                "models/gemini-flash-latest"
-            ]
-            
-            for test_model in working_models:
-                try:
-                    self.model = genai.GenerativeModel(test_model)
-                    # Test the model with a very simple prompt to verify it works
-                    test_response = self.model.generate_content(
-                        "Hello", 
-                        generation_config={
-                            'temperature': 0.1,
-                            'max_output_tokens': 5,
-                            'top_p': 0.8,
-                            'top_k': 40
-                        }
-                    )
-                    if test_response and test_response.text:
-                        logger.info(f"Successfully initialized and tested model: {test_model}")
-                        actual_model = test_model
-                        break
-                except Exception as model_error:
-                    logger.warning(f"Model {test_model} failed: {str(model_error)[:200]}")
-                    continue
-            else:
-                raise Exception("No working model found - please check your API key quota")
-                
-        except Exception as e:
-            logger.error(f"Failed to initialize any model: {e}")
-            raise Exception(f"Could not initialize Gemini model: {e}")
-        
+
+        self.model = GeminiModel(self.api_key, model_name or os.getenv("GEMINI_MODEL"))
+
         # Generation configuration
         self.generation_config = {
             'temperature': float(os.getenv('GEMINI_TEMPERATURE', '0.1')),
@@ -117,8 +149,6 @@ class GeminiAnalyzer:
             'top_p': 0.8,
             'top_k': 40
         }
-        
-        logger.info(f"Gemini analyzer initialized with model: {actual_model}")
     
     def _make_api_call_with_retry(self, prompt: str, max_retries: int = 5, operation_name: str = "API call") -> str:
         """
@@ -141,7 +171,11 @@ class GeminiAnalyzer:
                     return response.text
                 else:
                     return f"⚠️ No response generated for {operation_name}"
-                    
+
+            except GeminiAPIKeyError:
+                # Retrying can't fix a bad key; surface it immediately
+                raise
+
             except Exception as e:
                 error_msg = str(e)
                 
