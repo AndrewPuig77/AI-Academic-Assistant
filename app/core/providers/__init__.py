@@ -50,6 +50,22 @@ PROVIDERS = {
         "key_env": "ANTHROPIC_API_KEY",
         "key_url": "https://platform.claude.com/settings/keys",
     },
+    # Presets for free-tier OpenAI-compatible services, so users only need to paste a key
+    "groq": {
+        "label": "Groq (free tier)",
+        "default_model": "llama-3.3-70b-versatile",
+        "key_env": "GROQ_API_KEY",
+        "key_url": "https://console.groq.com/keys",
+        "base_url": "https://api.groq.com/openai/v1",
+    },
+    "openrouter": {
+        "label": "OpenRouter (free models)",
+        # Routes to whichever free model is available, so it survives OpenRouter rotating its free list
+        "default_model": "openrouter/free",
+        "key_env": "OPENROUTER_API_KEY",
+        "key_url": "https://openrouter.ai/settings/keys",
+        "base_url": "https://openrouter.ai/api/v1",
+    },
     "openai_compatible": {
         "label": "OpenAI-compatible",
         "default_model": "",
@@ -84,6 +100,11 @@ def create_provider(provider: str, api_key: Optional[str], model: Optional[str],
     if provider == "openai":
         from .openai_provider import OpenAIProvider
         return OpenAIProvider(api_key, model or PROVIDERS["openai"]["default_model"])
+    if PROVIDERS.get(provider, {}).get("base_url"):
+        from .openai_provider import OpenAIProvider
+        info = PROVIDERS[provider]
+        return OpenAIProvider(api_key, model or info["default_model"], base_url=info["base_url"],
+                              server_name=info["label"].split(" (")[0])
     if provider == "openai_compatible":
         from .openai_provider import OpenAIProvider
         if not base_url:

@@ -376,8 +376,8 @@ def render_provider_settings() -> dict:
         format_func=lambda p: PROVIDERS[p]["label"],
         key="llm_provider",
         label_visibility="collapsed",
-        help="Google Gemini is the default. OpenAI-compatible covers Groq, OpenRouter, Together, "
-             "and local servers like Ollama or LM Studio.",
+        help="Google Gemini is the default. Gemini, Groq and OpenRouter all have free API keys. "
+             "OpenAI-compatible covers any other server, like Together or a local Ollama.",
     )
     info = PROVIDERS[provider]
     builtin_key = get_builtin_key(provider)
@@ -498,6 +498,35 @@ DOCUMENT_OUTPUT_KEYS = [
     'related_papers', 'research_questions', 'hypotheses', 'research_proposal',
     'study_flashcards', 'study_questions', 'study_guide', 'material_analysis', 'show_report',
 ]
+
+
+def render_analysis_outcome(results: dict):
+    """Summarize the last analysis on the upload page so the outcome stays visible after the rerun."""
+    sections = {k: v for k, v in results.items() if k != 'document_type' and isinstance(v, str)}
+    failed = {k: v for k, v in sections.items() if v.lstrip().startswith(("❌", "⚠️"))}
+    succeeded = len(sections) - len(failed)
+
+    if not sections:
+        return
+    if succeeded == 0:
+        st.error(f"Analysis didn't produce any results — all {len(sections)} sections failed.", icon=":material/error:")
+    elif failed:
+        st.warning(f"{succeeded} of {len(sections)} sections done; {len(failed)} failed. Open the Results tab to read them.",
+                   icon=":material/warning:")
+    else:
+        st.success(f"Analysis complete — {succeeded} sections ready in the Results tab.", icon=":material/check_circle:")
+
+    if failed:
+        # Show the first failure's message; the rest usually share the same cause
+        first_error = next(iter(failed.values())).strip().lstrip("❌⚠️ ").replace("**", "")
+        with st.expander("Why sections failed", icon=":material/info:", expanded=succeeded == 0):
+            st.text(first_error[:600])
+
+    summary = results.get('summary')
+    if summary and 'summary' not in failed:
+        with st.container(border=True):
+            label("Summary preview")
+            st.markdown(summary[:800] + ("…" if len(summary) > 800 else ""))
 
 
 def main():
@@ -719,6 +748,9 @@ def main():
                     if analysis_succeeded:
                         st.session_state['analysis_just_completed'] = True
                         st.rerun()
+
+                if st.session_state.get('paper_name') == uploaded_file.name and 'analysis_results' in st.session_state:
+                    render_analysis_outcome(st.session_state['analysis_results'])
 
     with tab2:
         if 'analysis_results' in st.session_state:

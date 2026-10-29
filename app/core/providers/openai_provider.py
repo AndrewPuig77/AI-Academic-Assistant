@@ -18,7 +18,8 @@ COMPATIBLE_REQUEST_TIMEOUT = 300.0
 
 
 class OpenAIProvider:
-    def __init__(self, api_key: str, model: str, base_url: Optional[str] = None):
+    def __init__(self, api_key: str, model: str, base_url: Optional[str] = None, server_name: Optional[str] = None):
+        self.server_name = server_name
         timeout = COMPATIBLE_REQUEST_TIMEOUT if base_url else REQUEST_TIMEOUT
         # Rate-limit retries are handled by the analyzer, so the SDK retries only once
         self.client = openai.OpenAI(api_key=api_key, base_url=base_url, timeout=timeout, max_retries=1)
@@ -40,7 +41,7 @@ class OpenAIProvider:
             # Current OpenAI models take max_completion_tokens and only the default temperature
             params["max_completion_tokens"] = max(config.get("max_output_tokens", 0), OPENAI_MAX_COMPLETION_TOKENS)
 
-        provider_name = "The AI server" if self.base_url else "OpenAI"
+        provider_name = self.server_name or ("The AI server" if self.base_url else "OpenAI")
         try:
             response = self.client.chat.completions.create(**params)
         except (openai.AuthenticationError, openai.PermissionDeniedError) as e:
