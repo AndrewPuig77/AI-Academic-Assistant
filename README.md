@@ -1,196 +1,199 @@
-# 🎓 Academic AI Assistant
+# AI Academic Assistant
 
-[![Streamlit](https://img.shields.io/badge/Built%20with-Streamlit-FF6B6B)](https://streamlit.io/)
-[![Google Gemini](https://img.shields.io/badge/Powered%20by-Google%20Gemini-4285F4)](https://ai.google.dev/)
-[![Groq AI](https://img.shields.io/badge/Powered%20by-Groq%20AI-FF6B6B)](https://groq.com/)
-[![Python](https://img.shields.io/badge/Python-3.11+-3776AB)](https://python.org/)
-[![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Streamlit](https://img.shields.io/badge/Built%20with-Streamlit-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
+[![Google Gemini](https://img.shields.io/badge/Powered%20by-Google%20Gemini-4285F4?logo=google&logoColor=white)](https://ai.google.dev/)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-Transform research papers AND class materials into actionable insights with cutting-edge AI analysis. Perfect for researchers, students, and academics who need comprehensive document analysis and study tools.
+An AI-powered web application that turns research papers and course materials into structured analysis and study resources. Upload a document and receive executive summaries, methodology reviews, citation analysis, flashcards, practice questions, and study guides — all generated with Google Gemini.
 
-**[Try the Live Demo](https://ai-academic-assistant.streamlit.app/)**
+**[Live Demo →](https://ai-academic-assistant.streamlit.app/)**
 
-## ✨ Dual-Purpose Features
+---
 
-### 🔬 **Research Analysis Tools**
-Transform dense research papers into comprehensive insights:
+## Table of Contents
 
-- **📄 Smart PDF Processing** - Advanced text extraction with structure preservation
-- **📝 Executive Summaries** - Concise, accessible overviews of complex research  
-- **🔬 Methodology Breakdown** - Deep-dive analysis of research methods and procedures
-- **📚 Citation Network Analysis** - Automatic reference extraction and relationship mapping
-- **🔍 Research Gap Identification** - AI-powered discovery of unexplored opportunities
-- **🏷️ Keyword Extraction** - Key terms, concepts, and technical vocabulary
-- **� Related Paper Suggestions** - AI-powered discovery of similar research
-- **❓ Research Question Generator** - Generate meaningful questions for future investigation
-- **💡 Hypothesis Builder** - Develop testable hypotheses from research findings
-- **📋 Research Proposal Assistant** - AI-guided proposal drafting and grant applications
+- [Features](#features)
+- [Getting Started](#getting-started)
+- [Configuration](#configuration)
+- [Usage](#usage)
+- [Project Structure](#project-structure)
+- [Technology Stack](#technology-stack)
+- [Deployment](#deployment)
+- [License](#license)
 
-### 📚 **Student Study Tools** 
-Turn class materials into effective study resources:
+---
 
-- **📇 Smart Flashcards** - Extract key definitions and concepts for active recall
-- **❓ Practice Questions** - Generate multiple choice, short answer, and essay questions
-- **📖 Study Guides** - Create comprehensive guides with organized topics and summaries
-- **📊 Material Analysis** - Assess difficulty levels and provide study recommendations
-- **⏰ Exam Focus Predictions** - Identify likely test areas and important concepts
-- **💾 Export Everything** - Download all study materials as formatted files
+## Features
 
-## 🎯 **Perfect For**
+### Research Analysis
 
-### 🎓 **Researchers & Academics**
-- Quickly understand complex papers in your field
-- Generate research ideas and hypotheses
-- Draft compelling research proposals
-- Identify gaps in current literature
+| Feature | Description |
+| --- | --- |
+| **Document Processing** | Text extraction from PDF, DOCX, and TXT files with structure preservation |
+| **Executive Summary** | Concise, accessible overview of the paper's contributions |
+| **Methodology Review** | Detailed breakdown of research design, methods, and procedures |
+| **Citation Analysis** | Reference extraction and citation network visualization |
+| **Research Gap Identification** | Highlights open questions and unexplored directions |
+| **Keyword Extraction** | Key terms, concepts, and technical vocabulary |
+| **Related Paper Suggestions** | Recommendations for further reading |
+| **Research Question Generator** | Proposes questions for future investigation |
+| **Hypothesis Builder** | Develops testable hypotheses from the paper's findings |
+| **Proposal Assistant** | Drafts research proposals and grant application outlines |
 
-### 📚 **Students** 
-- Break down difficult textbooks and course materials
-- Create effective study materials (flashcards, guides, questions)
-- Prepare for exams with AI-generated practice questions
-- Understand complex academic papers for assignments
+### Study Tools
 
-### 🔬 **Research Teams**
-- Streamline literature review processes
-- Collaborative analysis and discussion
-- Stay updated with latest developments
-- Generate new research directions
+| Feature | Description |
+| --- | --- |
+| **Flashcards** | Key definitions and concepts formatted for active recall |
+| **Practice Questions** | Multiple-choice, short-answer, and essay questions |
+| **Study Guides** | Topic-organized guides with summaries |
+| **Material Analysis** | Difficulty assessment and study recommendations |
+| **Exam Focus** | Identifies the concepts most likely to be tested |
+| **Export** | Download individual resources or a complete study package |
 
-### � **Educators**
-- Quickly analyze teaching materials
-- Create study resources for students
-- Develop comprehensive course content
-- Assess material difficulty and learning objectives
+---
 
-## 🚀 Quick Start
+## Getting Started
 
 ### Prerequisites
-- Python 3.11 or higher
-- Google Gemini API key ([Get one here](https://aistudio.google.com/app/apikey))
+
+- Python 3.10 or later
+- A Google Gemini API key — [create one in Google AI Studio](https://aistudio.google.com/app/apikey) (free tier available)
 
 ### Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/AndrewPuig77/AI-Research-Paper-analyst.git
-cd AI-Research-Paper-analyst
+git clone https://github.com/AndrewPuig77/AI-Academic-Assistant.git
+cd AI-Academic-Assistant
 
-# Create virtual environment
+# Create and activate a virtual environment
 python -m venv .venv
-
-# Activate virtual environment
-# Windows:
-.venv\Scripts\activate
-# macOS/Linux:
-source .venv/bin/activate
+source .venv/bin/activate        # macOS / Linux
+.venv\Scripts\activate           # Windows
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Set up your API key
-cp .env.example .env
-# Edit .env and add your Google API key
+# Create your environment file
+cp .env.example .env             # macOS / Linux
+copy .env.example .env           # Windows
 ```
 
-### Configuration
-
-1. **Get Your Google Gemini API Key**
-   - Visit [Google AI Studio](https://aistudio.google.com/app/apikey)
-   - Create a new API key (FREE tier available!)
-   - Copy the key
-
-2. **Configure the Application**
-   ```bash
-   # Edit the .env file
-   GOOGLE_API_KEY=your_actual_api_key_here
-   ```
-
-### Run the Application
+### Running the Application
 
 ```bash
-# Start the Streamlit app
 streamlit run main.py
 ```
 
-Open your browser to **http://localhost:8501** and start analyzing! 🎉
+The app will be available at **http://localhost:8501**.
 
-## 📖 Usage
-
-### For Research Papers
-1. **📤 Upload** - Drop a research paper PDF
-2. **⚙️ Configure** - Select analysis options (summary, methodology, citations, etc.)
-3. **🔬 Research Tools** - Generate questions, hypotheses, and research proposals
-4. **📥 Export** - Download comprehensive analysis reports
-
-### For Class Materials  
-1. **� Upload** - Drop textbook chapters, lecture notes, or course handouts
-2. **📚 Study Tools** - Choose flashcards, practice questions, or study guides
-3. **� Analyze** - Get difficulty assessments and study recommendations
-4. **� Export** - Download complete study packages
-
-## 🛠️ Technology Stack
-
-### Core Technologies
-- **🐍 Python 3.11+** - Modern Python with advanced features
-- **🎨 Streamlit** - interactive web interface 
-- **🤖 Google Gemini/Groq -  AI for analysis
-- **📄 PyMuPDF** - Advanced PDF processing and text extraction
-- **� Plotly, Matplotlib, Seaborn** - Interactive visualizations and charts
-- **☁️ WordCloud** - Visual text analysis and keyword representation
-
-
-
-## 🎯 Demo Examples
-
-### Research Paper Analysis
-**Paper**: "Attention Is All You Need" (Transformer Architecture)
-
-```
-📝 EXECUTIVE SUMMARY
-This groundbreaking paper introduces the Transformer architecture, 
-revolutionizing NLP by relying entirely on attention mechanisms...
-
-🔬 METHODOLOGY ANALYSIS  
-Research Design: Experimental study with novel neural architecture
-Strength: 5/5 - Rigorous experimental setup with comprehensive baselines...
-
-💡 GENERATED HYPOTHESES
-1. Transformer architecture can be adapted for computer vision tasks
-2. Attention mechanisms might improve other sequence modeling problems...
-```
-
-### Study Material Creation
-**Material**: "Introduction to Machine Learning" (Textbook Chapter)
-
-```
-📇 FLASHCARDS GENERATED (15 cards)
-Front: What is supervised learning?
-Back: A machine learning paradigm where algorithms learn from labeled training data...
-
-❓ PRACTICE QUESTIONS
-Multiple Choice: Which algorithm is best for classification tasks with non-linear boundaries?
-A) Linear Regression B) Decision Trees C) SVM with RBF kernel D) All of the above
-**Answer: C**
-
-📖 STUDY GUIDE
-KEY CONCEPTS: Supervised vs Unsupervised Learning, Training/Validation Split...
-EXAM FOCUS: Likely to test algorithm selection and evaluation metrics...
-```
-
-
-##  License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-
+Windows users can alternatively run `run_app.bat`.
 
 ---
 
-<div align="center">
-  <p><strong>Built with ❤️ for researchers AND students</strong></p>
-  <p><em>Making academic success accessible to everyone</em></p>
-  
-  ![Made with Love](https://img.shields.io/badge/Made%20with-❤️-red.svg)
-  ![Open Source](https://img.shields.io/badge/Open%20Source-💚-brightgreen.svg)
-  ![Student Friendly](https://img.shields.io/badge/Student-Friendly-blue.svg)
-</div>
+## Configuration
+
+Settings are read from a `.env` file in the project root. At minimum, set your API key:
+
+```env
+GOOGLE_API_KEY=your_api_key_here
+```
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `GOOGLE_API_KEY` | — | **Required.** Google Gemini API key |
+| `GEMINI_TEMPERATURE` | `0.1` | Sampling temperature for generated output |
+| `GEMINI_MAX_TOKENS` | `8192` | Maximum tokens per response |
+
+See [`.env.example`](.env.example) for the full template.
+
+---
+
+## Usage
+
+### Analyzing a Research Paper
+
+1. **Upload** a paper (PDF, DOCX, or TXT).
+2. **Select** the analyses you want — summary, methodology, citations, and more.
+3. **Explore** the research tools to generate questions, hypotheses, or a proposal draft.
+4. **Export** the results as a text or JSON report.
+
+### Creating Study Materials
+
+1. **Upload** lecture notes, textbook chapters, or course handouts.
+2. **Choose** flashcards, practice questions, or a study guide.
+3. **Review** the difficulty assessment and study recommendations.
+4. **Download** individual resources or the complete study package.
+
+### Example Output
+
+*Research analysis — "Attention Is All You Need":*
+
+```
+EXECUTIVE SUMMARY
+This paper introduces the Transformer architecture, which relies entirely on
+attention mechanisms and dispenses with recurrence and convolutions...
+
+GENERATED HYPOTHESES
+1. Transformer architectures can be adapted to computer vision tasks.
+2. Attention mechanisms may improve other sequence modeling problems.
+```
+
+*Study materials — introductory machine learning chapter:*
+
+```
+FLASHCARD
+Front: What is supervised learning?
+Back:  A paradigm in which models learn from labeled training data...
+
+PRACTICE QUESTION
+Which model is best suited to classification with non-linear boundaries?
+A) Linear Regression  B) Decision Trees  C) SVM with RBF kernel  D) All of the above
+```
+
+---
+
+## Project Structure
+
+```
+AI-Academic-Assistant/
+├── main.py                     # Streamlit application entry point
+├── app/
+│   ├── core/
+│   │   ├── document_processor.py   # PDF / DOCX / TXT ingestion
+│   │   ├── pdf_processor.py        # PDF text extraction (PyMuPDF)
+│   │   └── gemini_analyzer.py      # Gemini prompts and analysis logic
+│   └── utils/
+│       ├── helpers.py              # Shared utilities
+│       └── report_generator.py     # Report building and export
+├── .streamlit/                 # Streamlit configuration
+├── .env.example                # Environment variable template
+├── requirements.txt
+└── DEPLOYMENT.md               # Deployment guide
+```
+
+---
+
+## Technology Stack
+
+| Layer | Tools |
+| --- | --- |
+| Interface | [Streamlit](https://streamlit.io/) |
+| AI Model | [Google Gemini](https://ai.google.dev/) via `google-generativeai` |
+| Document Processing | PyMuPDF, python-docx, chardet |
+| Visualization | Plotly, Matplotlib, Seaborn, NetworkX, WordCloud |
+| Reporting | ReportLab, pandas |
+
+---
+
+## Deployment
+
+The application is deployed on Streamlit Community Cloud. For instructions on deploying your own instance, see [DEPLOYMENT.md](DEPLOYMENT.md).
+
+---
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
